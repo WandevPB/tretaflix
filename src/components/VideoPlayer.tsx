@@ -82,11 +82,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     
     console.log("Processando link do vídeo:", embedCode);
     
-    // Vamos tentar usar qualquer URL como vídeo direto por padrão
-    // em vez de fazer muitas verificações que podem causar problemas
     const code = embedCode.trim();
     
-    // Se for um iframe, extrair a URL
+    // Verificar se é um iframe
     if (code.includes('<iframe') && code.includes('src=')) {
       console.log("Código iframe detectado");
       setPlayerType('iframe');
@@ -98,13 +96,30 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
         setVideoUrl(code);
       }
     } 
-    // Para qualquer outro caso, mostrar um vídeo de amostra
+    // Verificar se é uma URL direta
+    else if (code.startsWith('http')) {
+      console.log("URL direta detectada, tentando usar");
+      
+      // Verificar se é um arquivo de vídeo comum
+      const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
+      const isVideoFile = videoExtensions.some(ext => code.toLowerCase().endsWith(ext));
+      
+      if (isVideoFile) {
+        console.log("Arquivo de vídeo detectado");
+        setPlayerType('direct');
+        setVideoUrl(code);
+      } else {
+        // Tentar como URL direta mesmo assim
+        setPlayerType('direct');
+        setVideoUrl(code);
+      }
+    }
+    // Para qualquer outro caso, tratar como texto de URL
     else {
-      console.log("Usando vídeo de amostra garantido");
-      setPlayerType('sample');
-      const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
-      setSelectedSample(randomSample);
-      setVideoUrl(randomSample.url);
+      console.log("Tentando tratar como URL sem protocolo");
+      const urlWithProtocol = code.startsWith('//') ? `https:${code}` : `https://${code}`;
+      setPlayerType('direct');
+      setVideoUrl(urlWithProtocol);
     }
     
     // Sempre desativar o loading depois de processar
@@ -127,6 +142,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     setSelectedSample(randomSample);
     setVideoUrl(randomSample.url);
     setLoading(false);
+  };
+  
+  const handleVideoError = () => {
+    console.log("Erro ao carregar vídeo direto - mostrando opções de amostra");
+    setShowSampleOptions(true);
+    setPlayerType('sample');
+    const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+    setSelectedSample(randomSample);
+    setVideoUrl(randomSample.url);
   };
   
   // Seleção de vídeo de amostra
@@ -207,6 +231,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
             poster={selectedSample?.thumbnail || poster}
             className="w-full h-full"
             onLoadedData={() => setLoading(false)}
+            onError={handleVideoError}
             playsInline
             autoPlay
           />
@@ -215,6 +240,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
           {selectedSample && (
             <div className="text-white text-sm">
               Reproduzindo: {selectedSample.title}
+            </div>
+          )}
+          {!selectedSample && videoUrl && (
+            <div className="text-white text-sm">
+              Reproduzindo vídeo
             </div>
           )}
           <div className="flex space-x-2 ml-auto">
