@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import ContentSlider, { ContentItem } from "@/components/ContentSlider";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import supabase from "@/lib/supabase";
 
 // Mock data for demonstration (will be replaced by API data in the future)
 const mockMovies: ContentItem[] = [
@@ -179,53 +180,73 @@ const mockLiveChannels: ContentItem[] = [
 ];
 
 const HomePage = () => {
+  const [recentContent, setRecentContent] = useState<ContentItem[]>([]);
   const [movies, setMovies] = useState<ContentItem[]>([]);
   const [series, setSeries] = useState<ContentItem[]>([]);
   const [liveChannels, setLiveChannels] = useState<ContentItem[]>([]);
-  const [recentContent, setRecentContent] = useState<ContentItem[]>([]);
   const [hasContent, setHasContent] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Load content from localStorage
+  // Carregar conteúdo do Supabase ao invés de localStorage
   useEffect(() => {
-    // Load content added by admin from localStorage
-    const storedContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
+    const fetchContent = async () => {
+      setIsLoading(true);
+      try {
+        // Buscar todos os conteúdos do Supabase
+        const { data: allContent, error } = await supabase
+          .from('tretaflix_content')
+          .select('*')
+          .order('dateAdded', { ascending: false });
+          
+        if (error) {
+          console.error("Erro ao buscar conteúdo:", error);
+          setHasContent(false);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("Conteúdo carregado do Supabase:", allContent);
+        
+        // Processar o conteúdo por tipo
+        const formattedContent = allContent?.map(formatContentItem) || [];
+        
+        // Filtrar por tipo
+        const contentMovies = formattedContent.filter(item => 
+          item.type === "movie" || item.type === "filme"
+        );
+        
+        const contentSeries = formattedContent.filter(item => 
+          item.type === "tv" || item.type === "serie"
+        );
+        
+        const contentLiveChannels = formattedContent.filter(item => 
+          item.type === "live" || item.type === "aovivo"
+        );
+        
+        // Atualizar o state
+        setMovies(contentMovies);
+        setSeries(contentSeries);
+        setLiveChannels(contentLiveChannels);
+        setRecentContent(formattedContent.slice(0, 12));
+        setHasContent(formattedContent.length > 0);
+      } catch (error) {
+        console.error("Erro ao processar conteúdo:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Filter and format content by type
-    const storedMovies = storedContent
-      .filter((item: any) => item.type === "movie" || item.routeType === "filme")
-      .map((item: any) => formatContentItem(item, "movie"));
-      
-    const storedSeries = storedContent
-      .filter((item: any) => item.type === "series" || item.routeType === "serie")
-      .map((item: any) => formatContentItem(item, "serie"));
-      
-    const storedLiveChannels = storedContent
-      .filter((item: any) => item.type === "live" || item.routeType === "aovivo")
-      .map((item: any) => formatContentItem(item, "movie")); // Type as movie for display
-    
-    // Set content states
-    setMovies(storedMovies);
-    setSeries(storedSeries);
-    setLiveChannels(storedLiveChannels);
-    setHasContent(storedContent.length > 0);
-    
-    // Recent content is a mix of all content types
-    const allContent = [...storedMovies, ...storedSeries, ...storedLiveChannels];
-    if (allContent.length > 0) {
-      // Sort by dateAdded if available
-      const sortedContent = [...allContent].sort(() => Math.random() - 0.5).slice(0, 8);
-      setRecentContent(sortedContent);
-    }
+    fetchContent();
   }, []);
   
   // Helper to format content items consistently
-  const formatContentItem = (item: any, contentType: string): ContentItem => {
+  const formatContentItem = (item: any): ContentItem => {
     return {
       id: item.id || item.imdbID,
       title: item.title,
-      poster: item.poster_path || item.poster || "https://via.placeholder.com/300x450?text=Sem+Imagem",
-      type: contentType,
-      year: item.release_date || item.year || "",
+      poster: item.poster_path || item.posterUrl || item.poster || "https://via.placeholder.com/300x450?text=Sem+Imagem",
+      type: item.type || (item.mediaType === "tv" ? "serie" : "filme"),
+      year: item.release_date || item.releaseDate || item.year || "",
       rating: item.vote_average || item.rating || 0
     };
   };

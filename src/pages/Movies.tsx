@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import supabase from "@/lib/supabase";
 
 const MoviesPage = () => {
   const [allMovies, setAllMovies] = useState<ContentItem[]>([]);
@@ -25,28 +26,51 @@ const MoviesPage = () => {
   const [selectedGenre, setSelectedGenre] = useState("Todos");
   const [sort, setSort] = useState("recentes");
   const [hasContent, setHasContent] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load content from localStorage
+  // Carregar filmes do Supabase em vez do localStorage
   useEffect(() => {
-    // Load content added by admin from localStorage
-    const storedContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
+    const fetchMovies = async () => {
+      setIsLoading(true);
+      try {
+        // Buscar filmes do Supabase
+        const { data: moviesData, error } = await supabase
+          .from('tretaflix_content')
+          .select('*')
+          .or('type.eq.movie,type.eq.filme')
+          .order('dateAdded', { ascending: false });
+          
+        if (error) {
+          console.error("Erro ao buscar filmes:", error);
+          setHasContent(false);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Filmes carregados do Supabase:", moviesData);
+        
+        // Formatar os filmes para o formato esperado
+        const formattedMovies = moviesData?.map((item: any) => ({
+          id: item.id || item.imdbID,
+          title: item.title,
+          poster: item.posterUrl || item.poster_path || item.poster || "https://via.placeholder.com/300x450?text=Sem+Imagem",
+          type: "movie",
+          year: item.releaseDate || item.release_date || item.year || "",
+          rating: item.rating || item.vote_average || 0,
+          genres: (item.genres || "").split(", ")
+        })) || [];
+        
+        setAllMovies(formattedMovies);
+        setFilteredMovies(formattedMovies);
+        setHasContent(formattedMovies.length > 0);
+      } catch (error) {
+        console.error("Erro ao processar filmes:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Filter and format content for movies
-    const storedMovies = storedContent
-      .filter((item: any) => item.type === "movie" || item.routeType === "filme")
-      .map((item: any) => ({
-        id: item.id || item.imdbID,
-        title: item.title,
-        poster: item.poster_path || item.poster || "https://via.placeholder.com/300x450?text=Sem+Imagem",
-        type: "movie",
-        year: item.release_date || item.year || "",
-        rating: item.vote_average || item.rating || 0,
-        genres: item.genres || []
-      }));
-    
-    setAllMovies(storedMovies);
-    setFilteredMovies(storedMovies);
-    setHasContent(storedMovies.length > 0);
+    fetchMovies();
   }, []);
 
   // Filter and sort movies

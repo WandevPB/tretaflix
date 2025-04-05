@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Image, Loader2, Plus } from "lucide-react";
 import { MovieSearchResult } from "./ContentSearch";
+import supabase from "@/lib/supabase";
 
 // Lista de categorias
 const categories = [
@@ -37,29 +38,33 @@ const categories = [
   "Animes"
 ];
 
-// In a real app, this would save to a database via an API
+// Função para salvar o conteúdo no Supabase ao invés de localStorage
 const saveContent = async (content: any): Promise<boolean> => {
-  // Simulate a server delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  console.log("Saving content:", content);
+  console.log("Salvando conteúdo no Supabase:", content);
   
-  // Save to localStorage for demo purposes
   try {
-    // Get existing content or initialize empty array
-    const existingContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
-    
-    // Add new content to array
-    existingContent.push({
+    // Preparar o conteúdo com os campos necessários
+    const newContent = {
       ...content,
       id: content.id || Math.random().toString(36).substring(2, 9),
       dateAdded: new Date().toISOString()
-    });
+    };
     
-    // Save back to localStorage
-    localStorage.setItem('tretaflix_content', JSON.stringify(existingContent));
+    // Inserir no Supabase
+    const { data, error } = await supabase
+      .from('tretaflix_content')
+      .insert(newContent)
+      .select();
+    
+    if (error) {
+      console.error("Erro ao salvar conteúdo no Supabase:", error);
+      return false;
+    }
+    
+    console.log("Conteúdo salvo com sucesso:", data);
     return true;
   } catch (error) {
-    console.error("Error saving content:", error);
+    console.error("Erro ao salvar conteúdo:", error);
     return false;
   }
 };
