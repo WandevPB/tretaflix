@@ -28,14 +28,14 @@ const MoviesPage = () => {
   const [hasContent, setHasContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Carregar filmes do Supabase em vez do localStorage
+  // Carregar filmes do Supabase
   useEffect(() => {
     const fetchMovies = async () => {
       setIsLoading(true);
       try {
-        // Buscar filmes do Supabase
+        // Buscar filmes do Supabase com o nome correto da tabela
         const { data: moviesData, error } = await supabase
-          .from('tretaflix_content')
+          .from('TETRAFLIX')
           .select('*')
           .or('type.eq.movie,type.eq.filme')
           .order('dateAdded', { ascending: false });

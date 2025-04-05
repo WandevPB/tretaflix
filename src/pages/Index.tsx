@@ -187,14 +187,14 @@ const HomePage = () => {
   const [hasContent, setHasContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Carregar conteúdo do Supabase ao invés de localStorage
+  // Carregar conteúdo do Supabase
   useEffect(() => {
     const fetchContent = async () => {
       setIsLoading(true);
       try {
-        // Buscar todos os conteúdos do Supabase
+        // Buscar todos os conteúdos do Supabase usando o nome correto da tabela
         const { data: allContent, error } = await supabase
-          .from('tretaflix_content')
+          .from('TETRAFLIX')
           .select('*')
           .order('dateAdded', { ascending: false });
           
