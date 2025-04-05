@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import AdminLayout from "@/components/AdminLayout";
 import { Film, Monitor, Users, TrendingUp, Calendar } from "lucide-react";
+import supabase from "@/lib/supabase";
 
 // Generate mock visit data for last 7 days
 const generateVisitorsData = () => {
@@ -50,47 +51,66 @@ const AdminDashboard = () => {
     // Load content from localStorage and update stats
     const storedContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
     
-    // Count by type
-    const movies = storedContent.filter((item: any) => 
-      item.type === "movie" || item.routeType === "filme"
-    );
-    
-    const series = storedContent.filter((item: any) => 
-      item.type === "series" || item.routeType === "serie"
-    );
-    
-    const liveChannels = storedContent.filter((item: any) => 
-      item.type === "live" || item.routeType === "aovivo"
-    );
-    
-    // Update stats
-    setStats({
-      totalMovies: movies.length,
-      totalSeries: series.length,
-      totalLive: liveChannels.length,
-      totalViews: Math.floor(Math.random() * 10000) // Random views for demo
-    });
-    
-    // Generate popular content data
-    if (storedContent.length > 0) {
-      const popular = storedContent.slice(0, Math.min(5, storedContent.length)).map((item: any) => ({
-        name: item.title,
-        views: Math.floor(Math.random() * 5000)
-      }));
-      setPopularContent(popular);
-    }
-    
-    // Generate content by category data
-    const categories: Record<string, number> = {};
-    storedContent.forEach((item: any) => {
-      const category = item.category || "Não categorizado";
-      categories[category] = (categories[category] || 0) + 1;
-    });
-    
-    const categoriesData = Object.entries(categories).map(([name, value]) => ({ name, value }));
-    setContentByCategory(categoriesData.length > 0 ? categoriesData : [
-      { name: "Sem conteúdo", value: 1 }
-    ]);
+    // Update to fetch from Supabase
+    const fetchStats = async () => {
+      try {
+        // Buscar estatísticas do Supabase
+        const { data: allContent, error } = await supabase
+          .from('tretaflix')
+          .select('*');
+          
+        if (error) {
+          console.error("Erro ao buscar conteúdo:", error);
+          return;
+        }
+        
+        // Count by type
+        const movies = allContent.filter((item: any) => 
+          item.type === "movie" || item.routetype === "filme"
+        );
+        
+        const series = allContent.filter((item: any) => 
+          item.type === "series" || item.routetype === "serie"
+        );
+        
+        const liveChannels = allContent.filter((item: any) => 
+          item.type === "live" || item.routetype === "aovivo"
+        );
+        
+        // Update stats
+        setStats({
+          totalMovies: movies.length,
+          totalSeries: series.length,
+          totalLive: liveChannels.length,
+          totalViews: Math.floor(Math.random() * 10000) // Random views for demo
+        });
+        
+        // Generate popular content data
+        if (allContent.length > 0) {
+          const popular = allContent.slice(0, Math.min(5, allContent.length)).map((item: any) => ({
+            name: item.title,
+            views: Math.floor(Math.random() * 5000)
+          }));
+          setPopularContent(popular);
+        }
+        
+        // Generate content by category data
+        const categories: Record<string, number> = {};
+        allContent.forEach((item: any) => {
+          const category = item.category || "Não categorizado";
+          categories[category] = (categories[category] || 0) + 1;
+        });
+        
+        const categoriesData = Object.entries(categories).map(([name, value]) => ({ name, value }));
+        setContentByCategory(categoriesData.length > 0 ? categoriesData : [
+          { name: "Sem conteúdo", value: 1 }
+        ]);
+      } catch (error) {
+        console.error("Erro ao buscar estatísticas:", error);
+      }
+    };
+
+    fetchStats();
     
     // Simulate changing visitor count
     const interval = setInterval(() => {
