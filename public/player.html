@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TretaFlix Player</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    
+    #player-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    .loading {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      z-index: 10;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-left-color: #E50914;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error {
+      color: #E50914;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="player-container">
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Carregando vídeo...</p>
+    </div>
+    <div id="player"></div>
+    <div id="error" class="error" style="display: none;">
+      <h2>Não foi possível carregar o vídeo</h2>
+      <p>Tente novamente mais tarde.</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const videoUrl = urlParams.get('url');
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const playerEl = document.getElementById('player');
+      
+      if (!videoUrl) {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'flex';
+        errorEl.innerHTML = '<h2>URL do vídeo não fornecida</h2>';
+        return;
+      }
+      
+      // Criar iframe e tentar carregar o vídeo via nosso proxy
+      const sourceUrl = videoUrl.startsWith('http') ? videoUrl : `https://${videoUrl}`;
+      const iframe = document.createElement('iframe');
+      iframe.width = '100%';
+      iframe.height = '100%';
+      iframe.style.border = 'none';
+      iframe.allowFullscreen = true;
+      iframe.allow = 'encrypted-media';
+      iframe.src = sourceUrl;
+      
+      // Se a URL for do redecanais, usamos uma abordagem diferente
+      if (videoUrl.includes('redecanais') || 
+          videoUrl.includes('canais.') || 
+          videoUrl.includes('player3/server.php')) {
+        
+        // Verificar se a URL tem parâmetros
+        const hasParams = videoUrl.includes('?');
+        
+        // Adicionar o atributo sandbox para permitir scripts mas evitar alertas
+        iframe.sandbox = 'allow-scripts allow-same-origin';
+        
+        // Para evitar problemas de CORS, podemos adicionar um referrer específico
+        const meta = document.createElement('meta');
+        meta.name = 'referrer';
+        meta.content = 'no-referrer-when-downgrade';
+        document.head.appendChild(meta);
+      }
+      
+      // Lidar com carregamento e erros
+      iframe.onload = function() {
+        loadingEl.style.display = 'none';
+      };
+      
+      iframe.onerror = function() {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'flex';
+      };
+      
+      playerEl.appendChild(iframe);
+      
+      // Se após 15 segundos ainda estiver carregando, mostrar erro
+      setTimeout(function() {
+        if (loadingEl.style.display !== 'none') {
+          loadingEl.style.display = 'none';
+          errorEl.style.display = 'flex';
+          errorEl.innerHTML = '<h2>Tempo de carregamento excedido</h2><p>O vídeo demorou muito para carregar. Tente novamente.</p>';
+        }
+      }, 15000);
+    });
+  </script>
+</body>
+</html> 

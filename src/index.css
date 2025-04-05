@@ -1,0 +1,81 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 85% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 19%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 19%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 0 0% 19%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 19%;
+    --input: 0 0% 19%;
+    --ring: 0 85% 48%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 85% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 0 85% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-tretaflix-black text-foreground;
+  }
+}
+
+.content-grid {
+  @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4;
+}
+
+.movie-card {
+  @apply relative overflow-hidden rounded-md transition-transform duration-300;
+}
+
+.movie-card:hover {
+  @apply transform scale-105 z-10;
+}
+
+.card-overlay {
+  @apply absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4 opacity-0 transition-opacity duration-300;
+}
+
+.movie-card:hover .card-overlay {
+  @apply opacity-100;
+}
+
+.hero-gradient {
+  background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.1) 100%);
+}
