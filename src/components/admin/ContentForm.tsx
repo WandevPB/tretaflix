@@ -78,18 +78,25 @@ const saveContent = async (content: any): Promise<boolean> => {
     };
     
     console.log("Conteúdo preparado para salvar:", newContent);
+
+    // Usando a API fetch diretamente para ter mais controle sobre a requisição
+    const response = await fetch('https://hemzlkistdwenjalvix.supabase.co/rest/v1/TETRAFLIX', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(newContent)
+    });
     
-    // Inserir no Supabase
-    const { data, error } = await supabase
-      .from('TETRAFLIX')  // Nome correto da tabela no Supabase
-      .insert(newContent);
-    
-    if (error) {
-      console.error("Erro ao salvar conteúdo no Supabase:", error);
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Erro ao salvar: ${response.status}`, errorData);
       return false;
     }
     
-    console.log("Conteúdo salvo com sucesso:", data);
+    console.log("Conteúdo salvo com sucesso via fetch API");
     return true;
   } catch (error) {
     console.error("Erro ao salvar conteúdo:", error);
