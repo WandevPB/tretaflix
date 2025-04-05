@@ -10,6 +10,7 @@
   VITE_SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxODYyMDc3NiwiZXhwIjoyMDM0MTk2Nzc2fQ.xdqd3rJcPmQNpJdnRHLEpqOJu6iXEDcs1s5UAK3JKGw"
   VITE_ADMIN_USERNAME = "admin"
   VITE_ADMIN_PASSWORD = "admin123"
+  VITE_OMDB_API_KEY = "bba14009"
 
 # Configuração para SPA (Single Page Application)
 [[redirects]]
