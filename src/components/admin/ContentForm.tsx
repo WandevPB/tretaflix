@@ -40,7 +40,7 @@ const categories = [
 
 // Função para salvar o conteúdo apenas no Supabase
 const saveContent = async (content: any): Promise<boolean> => {
-  console.log("Salvando conteúdo no Supabase:", content);
+  console.log("Tentando salvar conteúdo no Supabase:", content);
   
   try {
     // Sanitizar o embedCode
@@ -79,20 +79,42 @@ const saveContent = async (content: any): Promise<boolean> => {
     
     console.log("Conteúdo preparado para salvar:", newContent);
 
-    // Usar o cliente supabase inicializado
-    const { error } = await supabase
-      .from('TETRAFLIX')
-      .insert(newContent);
+    // Método alternativo usando fetch diretamente
+    const response = await fetch('https://hemzlkistdwenjalvix.supabase.co/rest/v1/tretaflix', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(newContent)
+    });
     
-    if (error) {
-      console.error("Erro ao salvar:", error);
-      return false;
+    if (!response.ok) {
+      console.error("Erro ao salvar via fetch:", response.status, response.statusText);
+      const errorData = await response.text();
+      console.error("Detalhes do erro:", errorData);
+      
+      // Tentar método alternativo via Supabase client
+      console.log("Tentando método alternativo via cliente Supabase");
+      const { error } = await supabase
+        .from('tretaflix')
+        .insert(newContent);
+      
+      if (error) {
+        console.error("Erro ao salvar via cliente Supabase:", error);
+        throw new Error(`Não foi possível salvar: ${error.message}`);
+      } else {
+        console.log("Sucesso ao salvar via cliente Supabase!");
+        return true;
+      }
+    } else {
+      console.log("Sucesso ao salvar via fetch!");
+      return true;
     }
-    
-    console.log("Conteúdo salvo com sucesso via cliente Supabase");
-    return true;
   } catch (error) {
-    console.error("Erro ao salvar conteúdo:", error);
+    console.error("Erro fatal ao salvar conteúdo:", error);
     return false;
   }
 };

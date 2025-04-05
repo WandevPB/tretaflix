@@ -4,7 +4,7 @@ import supabase from "@/lib/supabase";
 import { toast } from "@/components/ui/use-toast";
 
 // Tabela no Supabase
-const CONTENTS_TABLE = 'contents';
+const CONTENTS_TABLE = 'tretaflix';
 
 // Adicionar conteúdo
 export const addContent = async (content: Omit<Content, "id">): Promise<Content> => {

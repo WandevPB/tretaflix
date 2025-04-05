@@ -33,18 +33,59 @@ const MoviesPage = () => {
     const fetchMovies = async () => {
       setIsLoading(true);
       try {
-        // Buscar filmes do Supabase com o nome correto da tabela
+        console.log("Tentando buscar filmes via cliente Supabase");
+        // Tentar buscar do Supabase via cliente
         const { data: moviesData, error } = await supabase
-          .from('TETRAFLIX')
+          .from('tretaflix')
           .select('*')
           .or('type.eq.movie,type.eq.filme')
           .order('dateAdded', { ascending: false });
           
         if (error) {
-          console.error("Erro ao buscar filmes:", error);
-          setHasContent(false);
-          setIsLoading(false);
-          return;
+          console.error("Erro ao buscar filmes via cliente Supabase:", error);
+          
+          // Tentar método alternativo com fetch direto
+          console.log("Tentando buscar filmes via fetch direto");
+          try {
+            const response = await fetch('https://hemzlkistdwenjalvix.supabase.co/rest/v1/tretaflix?select=*&or=(type.eq.movie,type.eq.filme)', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
+                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
+                'Range': '0-999'
+              }
+            });
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const fetchedMovies = await response.json();
+            console.log("Filmes carregados via fetch:", fetchedMovies);
+            
+            // Formatar os filmes para o formato esperado
+            const formattedMovies = fetchedMovies?.map((item: any) => ({
+              id: item.id || item.imdbID,
+              title: item.title,
+              poster: item.posterUrl || item.poster_path || item.poster || "https://via.placeholder.com/300x450?text=Sem+Imagem",
+              type: "movie",
+              year: item.releaseDate || item.release_date || item.year || "",
+              rating: item.rating || item.vote_average || 0,
+              genres: (item.genres || "").split(", ")
+            })) || [];
+            
+            setAllMovies(formattedMovies);
+            setFilteredMovies(formattedMovies);
+            setHasContent(formattedMovies.length > 0);
+            setIsLoading(false);
+            return;
+          } catch (fetchError) {
+            console.error("Erro ao buscar com fetch direto:", fetchError);
+            setHasContent(false);
+            setIsLoading(false);
+            return;
+          }
         }
         
         console.log("Filmes carregados do Supabase:", moviesData);
@@ -65,6 +106,7 @@ const MoviesPage = () => {
         setHasContent(formattedMovies.length > 0);
       } catch (error) {
         console.error("Erro ao processar filmes:", error);
+        setHasContent(false);
       } finally {
         setIsLoading(false);
       }

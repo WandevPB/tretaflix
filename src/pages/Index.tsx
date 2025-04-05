@@ -192,17 +192,66 @@ const HomePage = () => {
     const fetchContent = async () => {
       setIsLoading(true);
       try {
-        // Buscar todos os conteúdos do Supabase usando o nome correto da tabela
+        console.log("Tentando buscar conteúdo via cliente Supabase");
+        // Tentar buscar do Supabase via cliente
         const { data: allContent, error } = await supabase
-          .from('TETRAFLIX')
+          .from('tretaflix')
           .select('*')
           .order('dateAdded', { ascending: false });
           
         if (error) {
-          console.error("Erro ao buscar conteúdo:", error);
-          setHasContent(false);
-          setIsLoading(false);
-          return;
+          console.error("Erro ao buscar conteúdo via cliente Supabase:", error);
+          
+          // Tentar método alternativo com fetch direto
+          console.log("Tentando buscar conteúdo via fetch direto");
+          try {
+            const response = await fetch('https://hemzlkistdwenjalvix.supabase.co/rest/v1/tretaflix?select=*', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
+                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
+                'Range': '0-999'
+              }
+            });
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const fetchedContent = await response.json();
+            console.log("Conteúdo carregado via fetch:", fetchedContent);
+            
+            // Processar o conteúdo por tipo
+            const formattedContent = fetchedContent?.map(formatContentItem) || [];
+            
+            // Filtrar por tipo
+            const contentMovies = formattedContent.filter(item => 
+              item.type === "movie" || item.type === "filme"
+            );
+            
+            const contentSeries = formattedContent.filter(item => 
+              item.type === "tv" || item.type === "serie"
+            );
+            
+            const contentLiveChannels = formattedContent.filter(item => 
+              item.type === "live" || item.type === "aovivo"
+            );
+            
+            // Atualizar o state
+            setMovies(contentMovies);
+            setSeries(contentSeries);
+            setLiveChannels(contentLiveChannels);
+            setRecentContent(formattedContent.slice(0, 12));
+            setHasContent(formattedContent.length > 0);
+            setIsLoading(false);
+            return;
+          } catch (fetchError) {
+            console.error("Erro ao buscar com fetch direto:", fetchError);
+            setHasContent(false);
+            setIsLoading(false);
+            return;
+          }
         }
 
         console.log("Conteúdo carregado do Supabase:", allContent);
@@ -231,6 +280,7 @@ const HomePage = () => {
         setHasContent(formattedContent.length > 0);
       } catch (error) {
         console.error("Erro ao processar conteúdo:", error);
+        setHasContent(false);
       } finally {
         setIsLoading(false);
       }
