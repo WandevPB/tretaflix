@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // URL e chave fixa para garantir a conexão
-const supabaseUrl = 'https://hemzlkistdwenjalvix.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM';
+const supabaseUrl = 'https://hawbikistbbenjaldjvk.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg4MDEwNDIsImV4cCI6MjAzNDM3NzA0Mn0.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
 
 // Configurações básicas sem opções complexas
 const options = {

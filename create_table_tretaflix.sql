@@ -1,5 +1,5 @@
 -- Script para criar a tabela 'tretaflix' no Supabase
--- Execute este script no SQL Editor do seu projeto Supabase
+-- Execute este script no SQL Editor do seu projeto Supabase (https://hawbikistbbenjaldjvk.supabase.co)
 
 -- Primeiro, vamos remover a tabela se ela já existir
 DROP TABLE IF EXISTS tretaflix;
