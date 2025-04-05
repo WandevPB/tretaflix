@@ -79,20 +79,37 @@ const saveContent = async (content: any): Promise<boolean> => {
     
     console.log("Conteúdo preparado para salvar:", newContent);
 
-    // Usar o cliente Supabase com permissões de service_role
-    console.log("Usando cliente Supabase para salvar");
-    const { error, data } = await supabase
-      .from('tretaflix')
-      .insert(newContent)
-      .select();
+    // Tentar método alternativo - REST API direta
+    console.log("Tentando método via fetch com a chave anon correta");
+    const response = await fetch('https://hawbikistbbenjaldjvk.supabase.co/rest/v1/tretaflix', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NjkwMDAsImV4cCI6MjA1OTQ0NTAwMH0.TLfWbguFUB-plJDPesqzcb13nDSxwJPSTxeOielzpFU',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NjkwMDAsImV4cCI6MjA1OTQ0NTAwMH0.TLfWbguFUB-plJDPesqzcb13nDSxwJPSTxeOielzpFU',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(newContent)
+    });
     
-    if (error) {
-      console.error("Erro ao salvar via Supabase client:", error);
-      throw new Error(`Não foi possível salvar: ${error.message}`);
+    if (!response.ok) {
+      // Se falhar o método fetch, tentar usar o cliente Supabase
+      console.log("Erro ao salvar via fetch, tentando com cliente Supabase");
+      const { error } = await supabase
+        .from('tretaflix')
+        .insert(newContent);
+      
+      if (error) {
+        console.error("Erro ao salvar via cliente Supabase:", error);
+        throw new Error(`Não foi possível salvar: ${error.message}`);
+      } else {
+        console.log("Sucesso ao salvar via cliente Supabase!");
+        return true;
+      }
+    } else {
+      console.log("Sucesso ao salvar via fetch!");
+      return true;
     }
-    
-    console.log("Sucesso ao salvar no Supabase!", data);
-    return true;
   } catch (error) {
     console.error("Erro fatal ao salvar conteúdo:", error);
     return false;
