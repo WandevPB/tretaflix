@@ -42,7 +42,48 @@ const categories = [
 const saveContent = async (content: any): Promise<boolean> => {
   console.log("Salvando conteúdo no Supabase:", content);
   
+  // Primeiro verifique se a tabela existe
   try {
+    const { error: checkError } = await supabase
+      .from('tretaflix_content')
+      .select('count')
+      .limit(1);
+      
+    if (checkError) {
+      console.error("Erro ao verificar tabela:", checkError);
+      // Tentar criar a tabela - isto é uma simplificação, em produção você faria isto via migrations
+      console.log("Tentando salvar no localStorage como fallback...");
+      
+      // Salvar no localStorage como fallback
+      try {
+        const existingContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
+        const newLocalContent = {
+          ...content,
+          id: content.id || Math.random().toString(36).substring(2, 9),
+          dateAdded: new Date().toISOString()
+        };
+        
+        existingContent.push(newLocalContent);
+        localStorage.setItem('tretaflix_content', JSON.stringify(existingContent));
+        console.log("Conteúdo salvo no localStorage como fallback");
+        return true;
+      } catch (localError) {
+        console.error("Erro ao salvar no localStorage:", localError);
+        return false;
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao verificar tabela Supabase:", err);
+  }
+  
+  try {
+    // Sanitizar o embedCode
+    let sanitizedEmbedCode = content.embedCode;
+    if (sanitizedEmbedCode && sanitizedEmbedCode.includes('iframe')) {
+      // Certifique-se de que as aspas sejam consistentes
+      sanitizedEmbedCode = sanitizedEmbedCode.replace(/'/g, '"');
+    }
+    
     // Limpar e preparar o conteúdo com os campos necessários
     const newContent = {
       id: content.id || Math.random().toString(36).substring(2, 9),
@@ -53,7 +94,7 @@ const saveContent = async (content: any): Promise<boolean> => {
       releaseDate: content.release_date || content.releaseDate || '',
       rating: content.vote_average?.toString() || content.rating?.toString() || '0',
       genres: Array.isArray(content.genres) ? content.genres.join(', ') : (content.genres || ''),
-      embedCode: content.embedCode || '',
+      embedCode: sanitizedEmbedCode || '',
       type: content.type || 'movie',
       tmdbId: content.tmdbId || content.id || '',
       dateAdded: new Date().toISOString(),
@@ -63,8 +104,8 @@ const saveContent = async (content: any): Promise<boolean> => {
       
       // Campos que podem causar erros se enviados como undefined
       mediaType: content.mediaType || null,
-      season: content.season || null,
-      episodeCount: content.episodeCount || null,
+      season: content.season ? Number(content.season) : null,
+      episodeCount: content.episodeCount ? Number(content.episodeCount) : null,
       seasonTitle: content.seasonTitle || null,
       category: content.category || null,
       routeType: content.routeType || null
@@ -75,12 +116,22 @@ const saveContent = async (content: any): Promise<boolean> => {
     // Inserir no Supabase
     const { data, error } = await supabase
       .from('tretaflix_content')
-      .insert(newContent)
-      .select();
+      .insert(newContent);
     
     if (error) {
       console.error("Erro ao salvar conteúdo no Supabase:", error);
-      return false;
+      
+      // Tentar salvar no localStorage como fallback
+      try {
+        const existingContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
+        existingContent.push(newContent);
+        localStorage.setItem('tretaflix_content', JSON.stringify(existingContent));
+        console.log("Conteúdo salvo no localStorage como fallback após erro no Supabase");
+        return true;
+      } catch (localError) {
+        console.error("Erro ao salvar no localStorage:", localError);
+        return false;
+      }
     }
     
     console.log("Conteúdo salvo com sucesso:", data);
