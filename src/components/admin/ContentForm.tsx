@@ -55,26 +55,26 @@ const saveContent = async (content: any): Promise<boolean> => {
       id: content.id || Math.random().toString(36).substring(2, 9),
       title: content.title || '',
       overview: content.overview || '',
-      posterUrl: content.poster_path || content.posterUrl || '',
-      backdropUrl: content.backdrop_path || content.backdropUrl || '',
-      releaseDate: content.release_date || content.releaseDate || '',
-      rating: content.vote_average?.toString() || content.rating?.toString() || '0',
+      poster_path: content.poster_path || content.posterUrl || '',
+      backdrop_path: content.backdrop_path || content.backdropUrl || '',
+      release_date: content.release_date || content.releaseDate || '',
+      vote_average: content.vote_average?.toString() || content.rating?.toString() || '0',
       genres: Array.isArray(content.genres) ? content.genres.join(', ') : (content.genres || ''),
-      embedCode: sanitizedEmbedCode || '',
+      embed_code: sanitizedEmbedCode || '',
       type: content.type || 'movie',
-      tmdbId: content.tmdbId || content.id || '',
-      dateAdded: new Date().toISOString(),
+      tmdb_id: content.tmdbId || content.id || '',
+      date_added: new Date().toISOString(),
       
       // Se for iframe, extrair a URL
-      embedUrl: content.embedUrl || '',
+      embed_url: content.embedUrl || '',
       
       // Campos que podem causar erros se enviados como undefined
-      mediaType: content.mediaType || null,
+      media_type: content.mediaType || null,
       season: content.season ? Number(content.season) : null,
-      episodeCount: content.episodeCount ? Number(content.episodeCount) : null,
-      seasonTitle: content.seasonTitle || null,
+      episode_count: content.episodeCount ? Number(content.episodeCount) : null,
+      season_title: content.seasonTitle || null,
       category: content.category || null,
-      routeType: content.routeType || null
+      route_type: content.routeType || null
     };
     
     console.log("Conteúdo preparado para salvar:", newContent);
