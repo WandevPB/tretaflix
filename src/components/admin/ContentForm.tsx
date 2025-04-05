@@ -55,33 +55,33 @@ const saveContent = async (content: any): Promise<boolean> => {
       id: content.id || Math.random().toString(36).substring(2, 9),
       title: content.title || '',
       overview: content.overview || '',
-      poster_path: content.poster_path || content.posterUrl || '',
-      backdrop_path: content.backdrop_path || content.backdropUrl || '',
-      release_date: content.release_date || content.releaseDate || '',
-      vote_average: content.vote_average?.toString() || content.rating?.toString() || '0',
+      posterurl: content.poster_path || content.posterUrl || '',
+      backdropurl: content.backdrop_path || content.backdropUrl || '',
+      releasedate: content.release_date || content.releaseDate || '',
+      rating: content.vote_average?.toString() || content.rating?.toString() || '0',
       genres: Array.isArray(content.genres) ? content.genres.join(', ') : (content.genres || ''),
-      embed_code: sanitizedEmbedCode || '',
+      embedcode: sanitizedEmbedCode || '',
       type: content.type || 'movie',
-      tmdb_id: content.tmdbId || content.id || '',
-      date_added: new Date().toISOString(),
+      tmdbid: content.tmdbId || content.id || '',
+      dateadded: new Date().toISOString(),
       
       // Se for iframe, extrair a URL
-      embed_url: content.embedUrl || '',
+      embedurl: content.embedUrl || '',
       
       // Campos que podem causar erros se enviados como undefined
-      media_type: content.mediaType || null,
+      mediatype: content.mediaType || null,
       season: content.season ? Number(content.season) : null,
-      episode_count: content.episodeCount ? Number(content.episodeCount) : null,
-      season_title: content.seasonTitle || null,
+      episodecount: content.episodeCount ? Number(content.episodeCount) : null,
+      seasontitle: content.seasonTitle || null,
       category: content.category || null,
-      route_type: content.routeType || null
+      routetype: content.routeType || null
     };
     
     console.log("Conteúdo preparado para salvar:", newContent);
 
     // Tentar método alternativo - REST API direta
     console.log("Tentando método via fetch com a chave anon correta");
-    const response = await fetch('https://hawbikistbbenjaldjvk.supabase.co/rest/v1/tretaflix', {
+    const response = await fetch('https://hawbikistbbenjaldjvk.supabase.co/rest/v1/tretaflix?select=id', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ const ContentForm = ({ selectedContent, contentType }: ContentFormProps) => {
         embedUrl,
         category,
         type: contentType,
-        routeType: contentType === "movie" ? "filme" :
+        routetype: contentType === "movie" ? "filme" :
                   contentType === "series" ? "serie" : "aovivo"
       });
       
