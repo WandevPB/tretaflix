@@ -7,15 +7,16 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Trash2, Edit, Search, AlertTriangle } from "lucide-react";
+import supabase from "@/lib/supabase";
 
 interface MovieItem {
   id: string;
   title: string;
-  embedUrl: string;
+  embedcode: string;
   category: string;
-  dateAdded: string;
+  dateadded: string;
   type: string;
-  routeType?: string;
+  routetype?: string;
 }
 
 const AdminMovies = () => {
@@ -27,16 +28,44 @@ const AdminMovies = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Load movies from localStorage
-    const storedContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
-    const movieItems = storedContent.filter((item: any) => 
-      item.type === "movie" || item.routeType === "filme"
-    );
+    // Verificar autenticação
+    const token = localStorage.getItem("admin_token");
+    if (!token) {
+      navigate("/admin");
+      return;
+    }
     
-    setMovies(movieItems);
-    setFilteredMovies(movieItems);
-    setIsLoading(false);
-  }, []);
+    // Carregar filmes do Supabase
+    const fetchMovies = async () => {
+      setIsLoading(true);
+      try {
+        // Buscar do Supabase
+        const { data, error } = await supabase
+          .from('tretaflix')
+          .select('*')
+          .or('type.eq.movie,routetype.eq.filme')
+          .order('dateadded', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        setMovies(data || []);
+        setFilteredMovies(data || []);
+      } catch (error) {
+        console.error("Erro ao carregar filmes:", error);
+        toast({
+          title: "Erro ao carregar filmes",
+          description: "Não foi possível carregar a lista de filmes.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchMovies();
+  }, [navigate, toast]);
   
   // Filter movies based on search term
   useEffect(() => {
@@ -46,19 +75,22 @@ const AdminMovies = () => {
     setFilteredMovies(filtered);
   }, [searchTerm, movies]);
   
-  const handleDeleteMovie = (id: string) => {
+  const handleDeleteMovie = async (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir este filme?")) {
       try {
-        // Get existing content
-        const storedContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
+        setIsLoading(true);
         
-        // Filter out the movie to delete
-        const updatedContent = storedContent.filter((item: any) => item.id !== id);
+        // Excluir do Supabase
+        const { error } = await supabase
+          .from('tretaflix')
+          .delete()
+          .eq('id', id);
+          
+        if (error) {
+          throw error;
+        }
         
-        // Save back to localStorage
-        localStorage.setItem('tretaflix_content', JSON.stringify(updatedContent));
-        
-        // Update state
+        // Atualizar estado
         setMovies(movies.filter(movie => movie.id !== id));
         
         toast({
@@ -66,13 +98,20 @@ const AdminMovies = () => {
           description: "O filme foi removido com sucesso.",
         });
       } catch (error) {
+        console.error("Erro ao excluir filme:", error);
         toast({
           title: "Erro ao excluir",
           description: "Não foi possível excluir o filme.",
           variant: "destructive",
         });
+      } finally {
+        setIsLoading(false);
       }
     }
+  };
+  
+  const handleEditMovie = (id: string) => {
+    navigate(`/admin/editar/${id}`);
   };
   
   return (
@@ -135,14 +174,14 @@ const AdminMovies = () => {
                   <TableRow key={movie.id} className="border-tretaflix-gray">
                     <TableCell className="font-medium">{movie.title}</TableCell>
                     <TableCell>{movie.category || "Não categorizado"}</TableCell>
-                    <TableCell>{movie.dateAdded ? new Date(movie.dateAdded).toLocaleDateString() : "Desconhecida"}</TableCell>
+                    <TableCell>{movie.dateadded ? new Date(movie.dateadded).toLocaleDateString() : "Desconhecida"}</TableCell>
                     <TableCell>
                       <div className="flex space-x-1">
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0 text-gray-400 hover:text-white"
-                          onClick={() => navigate(`/filme/${movie.id}`)}
+                          onClick={() => handleEditMovie(movie.id)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
