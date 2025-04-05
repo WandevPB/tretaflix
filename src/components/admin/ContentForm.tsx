@@ -43,12 +43,34 @@ const saveContent = async (content: any): Promise<boolean> => {
   console.log("Salvando conteúdo no Supabase:", content);
   
   try {
-    // Preparar o conteúdo com os campos necessários
+    // Limpar e preparar o conteúdo com os campos necessários
     const newContent = {
-      ...content,
       id: content.id || Math.random().toString(36).substring(2, 9),
-      dateAdded: new Date().toISOString()
+      title: content.title || '',
+      overview: content.overview || '',
+      posterUrl: content.poster_path || content.posterUrl || '',
+      backdropUrl: content.backdrop_path || content.backdropUrl || '',
+      releaseDate: content.release_date || content.releaseDate || '',
+      rating: content.vote_average?.toString() || content.rating?.toString() || '0',
+      genres: Array.isArray(content.genres) ? content.genres.join(', ') : (content.genres || ''),
+      embedCode: content.embedCode || '',
+      type: content.type || 'movie',
+      tmdbId: content.tmdbId || content.id || '',
+      dateAdded: new Date().toISOString(),
+      
+      // Se for iframe, extrair a URL
+      embedUrl: content.embedUrl || '',
+      
+      // Campos que podem causar erros se enviados como undefined
+      mediaType: content.mediaType || null,
+      season: content.season || null,
+      episodeCount: content.episodeCount || null,
+      seasonTitle: content.seasonTitle || null,
+      category: content.category || null,
+      routeType: content.routeType || null
     };
+    
+    console.log("Conteúdo preparado para salvar:", newContent);
     
     // Inserir no Supabase
     const { data, error } = await supabase
