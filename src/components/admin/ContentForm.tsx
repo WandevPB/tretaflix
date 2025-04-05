@@ -38,43 +38,9 @@ const categories = [
   "Animes"
 ];
 
-// Função para salvar o conteúdo no Supabase ao invés de localStorage
+// Função para salvar o conteúdo apenas no Supabase
 const saveContent = async (content: any): Promise<boolean> => {
   console.log("Salvando conteúdo no Supabase:", content);
-  
-  // Primeiro verifique se a tabela existe
-  try {
-    const { error: checkError } = await supabase
-      .from('tretaflix_content')
-      .select('count')
-      .limit(1);
-      
-    if (checkError) {
-      console.error("Erro ao verificar tabela:", checkError);
-      // Tentar criar a tabela - isto é uma simplificação, em produção você faria isto via migrations
-      console.log("Tentando salvar no localStorage como fallback...");
-      
-      // Salvar no localStorage como fallback
-      try {
-        const existingContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
-        const newLocalContent = {
-          ...content,
-          id: content.id || Math.random().toString(36).substring(2, 9),
-          dateAdded: new Date().toISOString()
-        };
-        
-        existingContent.push(newLocalContent);
-        localStorage.setItem('tretaflix_content', JSON.stringify(existingContent));
-        console.log("Conteúdo salvo no localStorage como fallback");
-        return true;
-      } catch (localError) {
-        console.error("Erro ao salvar no localStorage:", localError);
-        return false;
-      }
-    }
-  } catch (err) {
-    console.error("Erro ao verificar tabela Supabase:", err);
-  }
   
   try {
     // Sanitizar o embedCode
@@ -115,23 +81,12 @@ const saveContent = async (content: any): Promise<boolean> => {
     
     // Inserir no Supabase
     const { data, error } = await supabase
-      .from('tretaflix_content')
+      .from('TETRAFLIX')  // Nome correto da tabela no Supabase
       .insert(newContent);
     
     if (error) {
       console.error("Erro ao salvar conteúdo no Supabase:", error);
-      
-      // Tentar salvar no localStorage como fallback
-      try {
-        const existingContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
-        existingContent.push(newContent);
-        localStorage.setItem('tretaflix_content', JSON.stringify(existingContent));
-        console.log("Conteúdo salvo no localStorage como fallback após erro no Supabase");
-        return true;
-      } catch (localError) {
-        console.error("Erro ao salvar no localStorage:", localError);
-        return false;
-      }
+      return false;
     }
     
     console.log("Conteúdo salvo com sucesso:", data);
