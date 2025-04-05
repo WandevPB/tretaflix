@@ -30,14 +30,55 @@ const SAMPLE_VIDEOS = [
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', poster }) => {
   const [loading, setLoading] = useState(true);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [playerType, setPlayerType] = useState<'iframe' | 'direct' | 'sample'>('iframe');
+  const [playerType, setPlayerType] = useState<'iframe' | 'direct' | 'sample' | 'torrent'>('iframe');
+  const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [showSampleOptions, setShowSampleOptions] = useState(false);
   const [selectedSample, setSelectedSample] = useState<typeof SAMPLE_VIDEOS[0] | null>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Configurar um timeout para mostrar opções de amostra caso o vídeo demore muito para carregar
+  useEffect(() => {
+    // Limpar qualquer timeout existente
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+    }
+    
+    // Definir um novo timeout de 10 segundos
+    if (loading) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.log("Tempo de carregamento excedido - mostrando opções de amostra");
+        setLoading(false);
+        setShowSampleOptions(true);
+        setPlayerType('sample');
+        // Selecionar um vídeo de amostra aleatório como fallback
+        const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+        setSelectedSample(randomSample);
+        setVideoUrl(randomSample.url);
+        setError("O vídeo demorou muito para carregar. Tentando com um vídeo de amostra.");
+      }, 10000);
+    }
+    
+    // Limpar o timeout quando o componente for desmontado
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [loading]);
 
   // Processamento do URL do vídeo
   useEffect(() => {
-    if (!embedCode) return;
+    if (!embedCode) {
+      setError("Nenhum código de vídeo fornecido");
+      setLoading(false);
+      setShowSampleOptions(true);
+      const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+      setSelectedSample(randomSample);
+      setVideoUrl(randomSample.url);
+      setPlayerType('sample');
+      return;
+    }
     
     console.log("Processando link do vídeo:", embedCode);
     setLoading(true);
@@ -73,6 +114,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
       return;
     }
     
+    // Verificar se é uma URL de vídeo problemática (redecanais, etc)
+    if (code.includes('redecanais') || 
+        code.includes('canais.') || 
+        code.includes('server.php') ||
+        code.includes('player3')) {
+      console.log("URL potencialmente problemática detectada - usando vídeo de amostra");
+      setShowSampleOptions(true);
+      setPlayerType('sample');
+      const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+      setSelectedSample(randomSample);
+      setVideoUrl(randomSample.url);
+      setLoading(false);
+      return;
+    }
+    
     // Se começa com http, tratar como URL direta
     if (code.startsWith('http')) {
       console.log("URL direta detectada");
@@ -95,6 +151,19 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
   }, [embedCode]);
   
   const handleIframeLoad = () => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+    }
+    setLoading(false);
+  };
+
+  const handleIframeError = () => {
+    console.log("Erro ao carregar iframe - mostrando opções de amostra");
+    setShowSampleOptions(true);
+    setPlayerType('sample');
+    const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+    setSelectedSample(randomSample);
+    setVideoUrl(randomSample.url);
     setLoading(false);
   };
   
@@ -115,6 +184,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     return (
       <div className={`flex items-center justify-center bg-black ${className} aspect-video`}>
         <Loader2 className="w-8 h-8 animate-spin text-tretaflix-red" />
+        <p className="ml-2 text-white">Carregando vídeo...</p>
       </div>
     );
   }
@@ -209,6 +279,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
           allowFullScreen
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           onLoad={handleIframeLoad}
+          onError={handleIframeError}
         />
       </div>
       <div className="py-3 text-center bg-tretaflix-gray/20 rounded-b-md">
