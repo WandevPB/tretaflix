@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Usar variáveis de ambiente ou valores padrão (para desenvolvimento)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hawbikistbbenjaldjvk.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NjkwMDAsImV4cCI6MjA1OTQ0NTAwMH0.TLfWbguFUB-plJDPesqzcb13nDSxwJPSTxeOielzpFU';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hemzlkistdwenjalvix.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbXpsa2lzdGR3ZW5qYWx2aXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxODgwMTA0MiwiZXhwIjoyMDM0Mzc3MDQyfQ.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM';
 
 // Criar e exportar o cliente Supabase
 const supabase = createClient(supabaseUrl, supabaseKey);
