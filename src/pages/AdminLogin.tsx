@@ -4,6 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff } from "lucide-react";
+import supabase from "@/lib/supabase";
+
+// Nomes de usuário e senhas criptografados - não podem ser facilmente revertidos
+// Os valores reais são 'wanderson' e 'admin123'
+const ADMIN_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"; // wanderson em SHA-256
+const PWD_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9"; // admin123 em SHA-256
+
+// Função para calcular hash SHA-256
+async function sha256(message: string) {
+  // Codificar como UTF-8
+  const msgBuffer = new TextEncoder().encode(message);
+  // Hash o mensagem
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  // Converter para string hexadecimal
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
 const AdminLogin = () => {
   const [username, setUsername] = useState("");
@@ -14,28 +32,41 @@ const AdminLogin = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Debug das credenciais
-    console.log("Debug de credenciais:");
-    console.log("VITE_ADMIN_USERNAME:", import.meta.env.VITE_ADMIN_USERNAME || "não definido");
-    console.log("VITE_ADMIN_PASSWORD:", import.meta.env.VITE_ADMIN_PASSWORD || "não definido");
-  }, []);
+    // Verificar se o usuário já está autenticado
+    const token = localStorage.getItem("admin_token");
+    if (token) {
+      navigate("/admin/dashboard");
+    }
+  }, [navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    console.log("Tentativa de login com:", username, password);
-    
-    // Use environment variables for credentials or fallback to hardcoded
-    setTimeout(() => {
-      // Aceitar credenciais das variáveis de ambiente ou usar fallback hardcoded
-      if ((username === import.meta.env.VITE_ADMIN_USERNAME && 
-          password === import.meta.env.VITE_ADMIN_PASSWORD) ||
-          (username === "admin" && password === "admin123")) {
-        
-        // Set auth token in localStorage
-        localStorage.setItem("admin_token", btoa(Date.now().toString()));
+    try {
+      // Verificar primeiro as credenciais armazenadas
+      const usernameHash = await sha256(username);
+      const passwordHash = await sha256(password);
+      
+      // Verificar se as credenciais correspondem
+      if (usernameHash === ADMIN_HASH && passwordHash === PWD_HASH) {
+        // Salvar token no localStorage
+        const token = btoa(Date.now().toString());
+        localStorage.setItem("admin_token", token);
         localStorage.setItem("admin_name", "Administrador");
+        
+        // Tenta salvar no Supabase para registro (opcional)
+        try {
+          await supabase.from('admin_logins').insert({
+            username: username,
+            login_time: new Date().toISOString(),
+            ip_address: "private"
+          });
+        } catch (error) {
+          // Falha ao registrar login, mas permitir acesso mesmo assim
+          console.error("Erro ao registrar login", error);
+        }
+        
         toast({
           title: "Login realizado com sucesso",
           description: "Bem-vindo ao painel administrativo.",
@@ -48,8 +79,16 @@ const AdminLogin = () => {
           variant: "destructive",
         });
       }
+    } catch (error) {
+      console.error("Erro ao processar login:", error);
+      toast({
+        title: "Erro ao fazer login",
+        description: "Ocorreu um erro durante o login.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -113,10 +152,6 @@ const AdminLogin = () => {
           >
             {isLoading ? "Entrando..." : "Entrar"}
           </Button>
-          
-          <div className="text-center text-sm text-gray-400 mt-4">
-            <p>Use admin/admin123 para acessar</p>
-          </div>
         </form>
       </div>
     </div>

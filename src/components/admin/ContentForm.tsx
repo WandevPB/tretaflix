@@ -39,81 +39,67 @@ const categories = [
 ];
 
 // Função para salvar o conteúdo apenas no Supabase
-const saveContent = async (content: any): Promise<boolean> => {
-  console.log("Tentando salvar conteúdo no Supabase:", content);
+const saveContent = async (data: ContentFormSchema) => {
+  setIsLoading(true);
   
   try {
-    // Sanitizar o embedCode
-    let sanitizedEmbedCode = content.embedCode;
-    if (sanitizedEmbedCode && sanitizedEmbedCode.includes('iframe')) {
-      // Certifique-se de que as aspas sejam consistentes
-      sanitizedEmbedCode = sanitizedEmbedCode.replace(/'/g, '"');
-    }
+    // Sanitizar o código embed
+    const cleanEmbedCode = data.embedCode || '';
     
-    // Limpar e preparar o conteúdo com os campos necessários
-    const newContent = {
-      // Gerar ID único baseado em timestamp + número aleatório para evitar colisões
-      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      title: content.title || '',
-      overview: content.overview || '',
-      posterurl: content.poster_path || content.posterUrl || '',
-      backdropurl: content.backdrop_path || content.backdropUrl || '',
-      releasedate: content.release_date || content.releaseDate || '',
-      rating: content.vote_average?.toString() || content.rating?.toString() || '0',
-      genres: Array.isArray(content.genres) ? content.genres.join(', ') : (content.genres || ''),
-      embedcode: sanitizedEmbedCode || '',
-      type: content.type || 'movie',
-      tmdbid: content.tmdbId || content.id || '',
+    // Preparar o conteúdo para salvar
+    const contentToSave = {
+      id: data.id || generateId(),
+      title: data.title,
+      overview: data.overview || '',
+      type: data.type,
+      release_date: data.releaseDate || '',
+      vote_average: data.rating || 0,
+      poster_path: data.posterUrl || '',
+      backdrop_path: data.backdropUrl || '',
+      embedUrl: cleanEmbedCode,
       dateadded: new Date().toISOString(),
-      
-      // Se for iframe, extrair a URL
-      embedurl: content.embedUrl || '',
-      
-      // Campos que podem causar erros se enviados como undefined
-      mediatype: content.mediaType || null,
-      season: content.season ? Number(content.season) : null,
-      episodecount: content.episodeCount ? Number(content.episodeCount) : null,
-      seasontitle: content.seasonTitle || null,
-      category: content.category || null,
-      routetype: content.routeType || null
+      // Incluir campos de temporada quando relevante
+      ...(data.type === 'serie' && {
+        season: data.season || 1,
+        episodeCount: data.episodeCount || 0,
+        seasonTitle: data.seasonTitle || ''
+      })
     };
     
-    console.log("Conteúdo preparado para salvar:", newContent);
-
-    // Tentar método alternativo - REST API direta
-    console.log("Tentando método via fetch com a chave anon correta");
-    const response = await fetch('https://hawbikistbbenjaldjvk.supabase.co/rest/v1/tretaflix?select=id', {
+    // Salvar no Supabase
+    const response = await fetch('https://hawbikistbbenjaldjvk.supabase.co/rest/v1/tretaflix', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NjkwMDAsImV4cCI6MjA1OTQ0NTAwMH0.TLfWbguFUB-plJDPesqzcb13nDSxwJPSTxeOielzpFU',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NjkwMDAsImV4cCI6MjA1OTQ0NTAwMH0.TLfWbguFUB-plJDPesqzcb13nDSxwJPSTxeOielzpFU',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg4MDEwNDIsImV4cCI6MjAzNDM3NzA0Mn0.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg4MDEwNDIsImV4cCI6MjAzNDM3NzA0Mn0.xoxFHQbYgLvx5yx35JNIGvgxSHnYEJVv2_s43BpRkGM',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify(newContent)
+      body: JSON.stringify(contentToSave)
     });
     
     if (!response.ok) {
-      // Se falhar o método fetch, tentar usar o cliente Supabase
-      console.log("Erro ao salvar via fetch, tentando com cliente Supabase");
-      const { error } = await supabase
-        .from('tretaflix')
-        .insert(newContent);
-      
-      if (error) {
-        console.error("Erro ao salvar via cliente Supabase:", error);
-        throw new Error(`Não foi possível salvar: ${error.message}`);
-      } else {
-        console.log("Sucesso ao salvar via cliente Supabase!");
-        return true;
-      }
-    } else {
-      console.log("Sucesso ao salvar via fetch!");
-      return true;
+      throw new Error(`Erro ao salvar conteúdo: ${response.statusText}`);
     }
+    
+    toast({
+      title: "Conteúdo adicionado com sucesso!",
+      description: `${data.title} foi adicionado ao catálogo.`,
+    });
+    
+    form.reset();
+    setSelectedPoster(null);
+    setSelectedBackdrop(null);
+    
   } catch (error) {
-    console.error("Erro fatal ao salvar conteúdo:", error);
-    return false;
+    console.error('Erro ao adicionar conteúdo:', error);
+    toast({
+      title: "Erro ao adicionar conteúdo",
+      description: "Ocorreu um erro ao tentar adicionar o conteúdo.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
   }
 };
 

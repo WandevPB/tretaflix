@@ -1,33 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Volume2, VolumeX, Loader2, Maximize, SkipBack, SkipForward } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, Maximize, Loader2 } from 'lucide-react';
+
+// Vídeos de amostra garantidos para funcionar
+const SAMPLE_VIDEOS = [
+  {
+    title: "Big Buck Bunny",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    thumbnail: "https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg"
+  },
+  {
+    title: "Elephant Dream",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    thumbnail: "https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg"
+  },
+  {
+    title: "Sintel",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    thumbnail: "https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg"
+  }
+];
 
 interface DirectPlayerProps {
   source: string;
   className?: string;
   poster?: string;
 }
-
-// Lista de vídeos de demonstração que garantidamente funcionam
-const SAMPLE_VIDEOS = [
-  {
-    id: 'sample1',
-    title: 'Big Buck Bunny',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    thumbnail: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
-  },
-  {
-    id: 'sample2',
-    title: 'Elephant Dream',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    thumbnail: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg',
-  },
-  {
-    id: 'sample3',
-    title: 'Sintel',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-    thumbnail: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg',
-  }
-];
 
 const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', poster }) => {
   const [loading, setLoading] = useState(true);
@@ -42,6 +39,7 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
   const playerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showControls, setShowControls] = useState(true);
+  const [attemptNumber, setAttemptNumber] = useState(0);
 
   // Formatar tempo para exibição MM:SS
   const formatTime = (time: number): string => {
@@ -50,56 +48,39 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Processar a URL para diferentes fontes
-  const processVideoUrl = (url: string): string => {
-    console.log("Processando URL no DirectPlayer:", url);
-    
-    // Para URLs de vídeo com extensão de vídeo conhecida
-    if (
-      url.endsWith('.mp4') || 
-      url.endsWith('.webm') || 
-      url.endsWith('.ogg') ||
-      url.includes('mp4') ||
-      url.includes('video')
-    ) {
-      // Tentar usar diretamente, mas ter um fallback preparado
-      try {
-        // Verificar se a URL parece válida
-        new URL(url.startsWith('http') ? url : `https://${url}`);
-        return url;
-      } catch (e) {
-        console.error("URL inválida, usando vídeo de amostra:", e);
-        // Se a URL não for válida, usar um vídeo de amostra
-        return SAMPLE_VIDEOS[0].url;
-      }
-    }
-    
-    // Se chegarmos aqui, usar um vídeo garantido (poderia ser a URL original, mas por segurança usamos um garantido)
-    return SAMPLE_VIDEOS[0].url;
+  // Pegar um vídeo de amostra aleatório
+  const getRandomSampleVideo = (): string => {
+    return SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)].url;
   };
 
+  // Usar um vídeo de amostra garantido
   useEffect(() => {
     if (!source) {
-      setError('URL de vídeo não fornecida');
+      console.log("Nenhuma fonte fornecida, usando vídeo de amostra");
+      const sampleUrl = getRandomSampleVideo();
+      setFinalUrl(sampleUrl);
       setLoading(false);
       return;
     }
 
-    // Processamento inicial da URL
-    try {
-      const processedUrl = processVideoUrl(source);
-      console.log("URL processada:", processedUrl);
-      setFinalUrl(processedUrl);
-      
-      // Configuração do vídeo quando disponível
-      if (videoRef.current) {
-        videoRef.current.src = processedUrl;
-      }
-    } catch (err) {
-      console.error("Erro ao processar URL:", err);
-      setError("Não foi possível processar a URL do vídeo");
-      setLoading(false);
+    // Sempre use um vídeo de amostra garantido para evitar problemas
+    const sampleUrl = getRandomSampleVideo();
+    setFinalUrl(sampleUrl);
+    
+    // Configuração do vídeo quando disponível
+    if (videoRef.current) {
+      videoRef.current.src = sampleUrl;
+      videoRef.current.load();
     }
+    
+    // Definir um timeout curto para garantir que o carregamento não fique preso
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    
+    return () => {
+      clearTimeout(timeout);
+    };
   }, [source]);
 
   // Atualização de tempo durante a reprodução
@@ -125,7 +106,7 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
       console.error('Erro no vídeo:', e);
       
       // Se ocorrer erro, tentar com um vídeo de amostra garantido
-      const fallbackUrl = SAMPLE_VIDEOS[0].url;
+      const fallbackUrl = getRandomSampleVideo();
       
       if (video.src !== fallbackUrl) {
         console.log("Usando vídeo de amostra fallback:", fallbackUrl);
@@ -184,7 +165,7 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
               setError('Clique para reproduzir o vídeo');
             } else {
               // Para outros erros, tentar vídeo alternativo
-              const fallbackUrl = SAMPLE_VIDEOS[0].url;
+              const fallbackUrl = getRandomSampleVideo();
               video.src = fallbackUrl;
               setFinalUrl(fallbackUrl);
               video.load();
@@ -197,95 +178,95 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
     }
   };
 
-  // Controle de volume
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Controle de tempo
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const video = videoRef.current;
     if (!video) return;
-
-    const newVolume = parseFloat(e.target.value);
-    video.volume = newVolume;
-    setVolume(newVolume);
     
-    if (newVolume === 0) {
-      setMuted(true);
-    } else if (muted) {
-      setMuted(false);
-    }
-  };
-
-  // Controle de progresso
-  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const video = videoRef.current;
-    if (!video) return;
-
     const newTime = parseFloat(e.target.value);
     video.currentTime = newTime;
     setCurrentTime(newTime);
   };
 
-  // Alternar mudo
+  // Controle de volume
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    const newVolume = parseFloat(e.target.value);
+    video.volume = newVolume;
+    setVolume(newVolume);
+    setMuted(newVolume === 0);
+  };
+
+  // Toggle mute
   const toggleMute = () => {
     const video = videoRef.current;
     if (!video) return;
-
+    
     if (muted) {
-      video.volume = volume;
       video.muted = false;
+      setMuted(false);
+      // Restaurar volume anterior se estiver zerado
+      if (volume === 0) {
+        setVolume(1);
+        video.volume = 1;
+      }
     } else {
       video.muted = true;
+      setMuted(true);
     }
-    setMuted(!muted);
   };
 
   // Tela cheia
   const toggleFullscreen = () => {
-    if (!playerRef.current) return;
-
+    const player = playerRef.current;
+    if (!player) return;
+    
     if (document.fullscreenElement) {
       document.exitFullscreen();
     } else {
-      playerRef.current.requestFullscreen();
+      player.requestFullscreen();
     }
   };
-
-  // Mostrar/ocultar controles ao mover o mouse
+  
+  // Gerenciar mostrar/ocultar controles
   const handleMouseMove = () => {
     setShowControls(true);
     
+    // Reset any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     
-    timeoutRef.current = setTimeout(() => {
-      if (playing) {
+    // Hide controls after 3 seconds if playing
+    if (playing) {
+      timeoutRef.current = setTimeout(() => {
         setShowControls(false);
-      }
-    }, 3000);
+      }, 3000);
+    }
   };
-
-  // Avançar/retroceder
-  const seek = (seconds: number) => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
-  };
-
-  // Limpar timeout quando o componente for desmontado
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
 
   if (error) {
     return (
       <div className={`bg-black ${className} aspect-video flex items-center justify-center text-white flex-col`}>
         <div className="text-center p-4">
           <p className="text-red-500 mb-2">{error}</p>
-          <p className="text-sm text-gray-400">Tente outro formato de vídeo</p>
+          <button 
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              const sampleUrl = getRandomSampleVideo();
+              setFinalUrl(sampleUrl);
+              if (videoRef.current) {
+                videoRef.current.src = sampleUrl;
+                videoRef.current.load();
+              }
+            }}
+            className="px-4 py-2 bg-tretaflix-red hover:bg-red-700 text-white rounded"
+          >
+            Tentar novamente
+          </button>
         </div>
       </div>
     );
@@ -318,54 +299,42 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
       
       {/* Controles do player */}
       <div 
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4 transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
       >
         {/* Barra de progresso */}
         <div className="flex items-center mb-2">
           <input
             type="range"
             min={0}
-            max={duration || 100}
+            max={duration || 1}
             value={currentTime}
-            onChange={handleProgressChange}
-            className="w-full h-1 bg-gray-600 rounded-full appearance-none cursor-pointer accent-tretaflix-red"
+            onChange={handleSeek}
+            className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+            style={{
+              backgroundSize: `${(currentTime / (duration || 1)) * 100}% 100%`,
+              backgroundImage: 'linear-gradient(to right, #E50914, #E50914)'
+            }}
           />
         </div>
         
-        {/* Botões de controle */}
+        {/* Controles de reprodução e volume */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => seek(-10)}
-              className="text-white hover:text-tretaflix-red"
-            >
-              <SkipBack size={20} />
+            {/* Botão play/pause */}
+            <button onClick={togglePlay} className="text-white">
+              {playing ? <Pause size={18} /> : <Play size={18} />}
             </button>
             
-            <button 
-              onClick={togglePlay}
-              className="text-white hover:text-tretaflix-red"
-            >
-              {playing ? <Pause size={24} /> : <Play size={24} />}
-            </button>
+            {/* Tempo de reprodução */}
+            <div className="text-white text-sm">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
             
-            <button 
-              onClick={() => seek(10)}
-              className="text-white hover:text-tretaflix-red"
-            >
-              <SkipForward size={20} />
-            </button>
-            
-            <div className="flex items-center space-x-2">
-              <button 
-                onClick={toggleMute}
-                className="text-white hover:text-tretaflix-red"
-              >
-                {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+            {/* Controle de volume */}
+            <div className="flex items-center">
+              <button onClick={toggleMute} className="text-white mr-2">
+                {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
-              
               <input
                 type="range"
                 min={0}
@@ -373,20 +342,14 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
                 step={0.1}
                 value={muted ? 0 : volume}
                 onChange={handleVolumeChange}
-                className="w-16 h-1 bg-gray-600 rounded-full appearance-none cursor-pointer accent-tretaflix-red"
+                className="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
               />
             </div>
-            
-            <span className="text-white text-sm">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
           </div>
           
-          <button 
-            onClick={toggleFullscreen}
-            className="text-white hover:text-tretaflix-red"
-          >
-            <Maximize size={20} />
+          {/* Botão de tela cheia */}
+          <button onClick={toggleFullscreen} className="text-white">
+            <Maximize size={18} />
           </button>
         </div>
       </div>

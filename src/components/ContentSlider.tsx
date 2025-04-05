@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -112,7 +111,7 @@ const ContentSlider = ({ title, items, className, viewMoreLink }: ContentSliderP
 
         <div
           ref={sliderRef}
-          className="flex overflow-x-scroll scrollbar-none gap-2 px-4"
+          className="flex overflow-x-scroll scrollbar-none gap-4 px-4 py-2 h-[280px] items-center"
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
@@ -124,12 +123,15 @@ const ContentSlider = ({ title, items, className, viewMoreLink }: ContentSliderP
               to={`/${item.type === "movie" ? "filme" : "serie"}/${item.id}`}
               className="movie-card flex-none w-[160px] md:w-[180px]"
             >
-              <div className="aspect-[2/3] bg-tretaflix-gray">
+              <div className="aspect-[2/3] bg-tretaflix-gray rounded-md overflow-hidden shadow-lg">
                 <img
                   src={item.poster}
                   alt={item.title}
-                  className="w-full h-full object-cover rounded-md"
+                  className="w-full h-full object-cover"
                   loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "https://via.placeholder.com/300x450?text=Sem+Imagem";
+                  }}
                 />
                 <div className="card-overlay">
                   <h3 className="text-sm font-medium truncate text-white">

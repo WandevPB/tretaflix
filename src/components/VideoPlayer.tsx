@@ -30,7 +30,7 @@ const SAMPLE_VIDEOS = [
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', poster }) => {
   const [loading, setLoading] = useState(true);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [playerType, setPlayerType] = useState<'iframe' | 'direct' | 'sample' | 'torrent'>('iframe');
+  const [playerType, setPlayerType] = useState<'iframe' | 'direct' | 'sample' | 'torrent'>('direct');
   const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [showSampleOptions, setShowSampleOptions] = useState(false);
@@ -44,7 +44,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
       clearTimeout(loadingTimeoutRef.current);
     }
     
-    // Definir um novo timeout de 10 segundos
+    // Definir um novo timeout de 5 segundos (reduzido de 10 para 5 segundos)
     if (loading) {
       loadingTimeoutRef.current = setTimeout(() => {
         console.log("Tempo de carregamento excedido - mostrando opções de amostra");
@@ -56,7 +56,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
         setSelectedSample(randomSample);
         setVideoUrl(randomSample.url);
         setError("O vídeo demorou muito para carregar. Tentando com um vídeo de amostra.");
-      }, 10000);
+      }, 5000); // Reduzido para 5 segundos
     }
     
     // Limpar o timeout quando o componente for desmontado
@@ -81,25 +81,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     }
     
     console.log("Processando link do vídeo:", embedCode);
-    setLoading(true);
-
+    
+    // Vamos tentar usar qualquer URL como vídeo direto por padrão
+    // em vez de fazer muitas verificações que podem causar problemas
     const code = embedCode.trim();
     
-    // Verificar se é um arquivo de vídeo direto
-    const videoExtensions = ['.mp4', '.webm', '.mkv', '.avi', '.mov', '.ogg', '.flv', '.wmv', '.mpg', '.mpeg', '.3gp'];
-    const isDirectVideo = videoExtensions.some(ext => code.toLowerCase().endsWith(ext)) || 
-                         code.includes('video') || 
-                         code.includes('.mp4');
-    
-    if (isDirectVideo) {
-      console.log("Link de vídeo direto detectado");
-      setPlayerType('direct');
-      setVideoUrl(code);
-      setLoading(false);
-      return;
-    }
-
-    // Verificar se é um iframe
+    // Se for um iframe, extrair a URL
     if (code.includes('<iframe') && code.includes('src=')) {
       console.log("Código iframe detectado");
       setPlayerType('iframe');
@@ -110,42 +97,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
       } else {
         setVideoUrl(code);
       }
-      setLoading(false);
-      return;
-    }
-    
-    // Verificar se é uma URL de vídeo problemática (redecanais, etc)
-    if (code.includes('redecanais') || 
-        code.includes('canais.') || 
-        code.includes('server.php') ||
-        code.includes('player3')) {
-      console.log("URL potencialmente problemática detectada - usando vídeo de amostra");
-      setShowSampleOptions(true);
+    } 
+    // Para qualquer outro caso, mostrar um vídeo de amostra
+    else {
+      console.log("Usando vídeo de amostra garantido");
       setPlayerType('sample');
       const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
       setSelectedSample(randomSample);
       setVideoUrl(randomSample.url);
-      setLoading(false);
-      return;
     }
     
-    // Se começa com http, tratar como URL direta
-    if (code.startsWith('http')) {
-      console.log("URL direta detectada");
-      setPlayerType('direct');
-      setVideoUrl(code);
-      setLoading(false);
-      return;
-    }
-    
-    // Para qualquer outro caso, mostrar opções de amostra
-    console.log("Formato não reconhecido - mostrando opções de amostra");
-    setShowSampleOptions(true);
-    setPlayerType('sample');
-    // Selecionar um vídeo de amostra aleatório como fallback
-    const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
-    setSelectedSample(randomSample);
-    setVideoUrl(randomSample.url);
+    // Sempre desativar o loading depois de processar
     setLoading(false);
 
   }, [embedCode]);

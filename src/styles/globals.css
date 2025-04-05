@@ -1,0 +1,38 @@
+/* Já existem estilos aqui, vou adicionar no final do arquivo */
+
+/* Estilos para remover barras de rolagem visíveis */
+.scrollbar-none {
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Estilo para o card de conteúdo */
+.movie-card {
+  transition: transform 0.3s;
+  position: relative;
+}
+
+.movie-card:hover {
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+/* Sobreposição de informações no card */
+.card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+  padding: 0.75rem 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.movie-card:hover .card-overlay {
+  opacity: 1;
+} 
