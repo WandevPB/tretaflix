@@ -197,7 +197,7 @@ const HomePage = () => {
         const { data: allContent, error } = await supabase
           .from('tretaflix')
           .select('*')
-          .order('dateAdded', { ascending: false });
+          .order('dateadded', { ascending: false });
           
         if (error) {
           console.error("Erro ao buscar conteúdo via cliente Supabase:", error);
@@ -292,12 +292,12 @@ const HomePage = () => {
   // Helper to format content items consistently
   const formatContentItem = (item: any): ContentItem => {
     return {
-      id: item.id || item.imdbID,
+      id: item.id,
       title: item.title,
-      poster: item.poster_path || item.posterUrl || item.poster || "https://via.placeholder.com/300x450?text=Sem+Imagem",
-      type: item.type || (item.mediaType === "tv" ? "serie" : "filme"),
-      year: item.release_date || item.releaseDate || item.year || "",
-      rating: item.vote_average || item.rating || 0
+      poster: item.posterurl || item.poster_path || "https://via.placeholder.com/300x450?text=Sem+Imagem",
+      type: item.type || (item.mediatype === "tv" ? "serie" : "filme"),
+      year: item.releasedate?.substring(0, 4) || "",
+      rating: item.rating || 0
     };
   };
 
