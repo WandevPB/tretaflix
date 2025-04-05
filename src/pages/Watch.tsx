@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import supabase from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
+import VideoPlayer from '@/components/VideoPlayer';
 
 interface ContentItem {
   id: string;
@@ -26,6 +27,7 @@ const Watch = () => {
   useEffect(() => {
     const fetchContent = async () => {
       try {
+        console.log(`Fetching content with ID: ${id} and type: ${type}`);
         setLoading(true);
         setError(null);
         
@@ -42,15 +44,18 @@ const Watch = () => {
           .single();
 
         if (error) {
+          console.error('Erro Supabase:', error);
           throw error;
         }
 
         if (!data) {
+          console.log('Nenhum conteúdo encontrado para o ID:', id);
           setError('Conteúdo não encontrado');
           setLoading(false);
           return;
         }
 
+        console.log('Conteúdo carregado com sucesso:', data);
         setContent(data);
       } catch (err) {
         console.error('Erro ao carregar o conteúdo:', err);
@@ -62,54 +67,6 @@ const Watch = () => {
 
     fetchContent();
   }, [id, type]);
-
-  const renderVideo = () => {
-    if (!content?.embedcode) return null;
-
-    // Verificar se é uma URL direta de vídeo MP4
-    if (content.embedcode.match(/\.(mp4|mkv|avi|mov|wmv)(\?.*)?$/i)) {
-      return (
-        <video 
-          controls 
-          autoPlay 
-          className="w-full h-full rounded-md"
-          style={{ maxHeight: "calc(100vh - 120px)" }}
-        >
-          <source src={content.embedcode} type="video/mp4" />
-          Seu navegador não suporta a tag de vídeo.
-        </video>
-      );
-    }
-
-    // Verificar se é magnet link
-    if (content.embedcode.startsWith('magnet:')) {
-      return (
-        <div className="flex flex-col items-center justify-center p-10 bg-tretaflix-dark rounded-md">
-          <p className="text-center mb-4">Este conteúdo é um torrent (magnet link)</p>
-          <a 
-            href={content.embedcode} 
-            className="px-4 py-2 bg-tretaflix-red hover:bg-tretaflix-red/80 text-white rounded-md"
-            target="_blank" 
-            rel="noopener noreferrer"
-          >
-            Abrir no cliente de Torrent
-          </a>
-        </div>
-      );
-    }
-
-    // URL padrão - incorporar em iframe
-    return (
-      <iframe 
-        src={content.embedcode}
-        allowFullScreen
-        className="w-full rounded-md"
-        style={{ height: "calc(100vh - 120px)" }}
-        sandbox="allow-same-origin allow-scripts allow-forms"
-        referrerPolicy="no-referrer"
-      />
-    );
-  };
 
   return (
     <div className="bg-tretaflix-black min-h-screen text-white">
@@ -145,7 +102,23 @@ const Watch = () => {
           <div>
             <h1 className="text-2xl font-bold mb-4">{content.title}</h1>
             <div className="video-container">
-              {renderVideo()}
+              {content.embedcode ? (
+                <VideoPlayer 
+                  embedCode={content.embedcode} 
+                  className="w-full rounded-md" 
+                  poster={content.posterurl}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-10 bg-tretaflix-dark rounded-md">
+                  <p className="text-center mb-4">Nenhum link de vídeo disponível para este conteúdo</p>
+                  <Button 
+                    className="bg-tretaflix-red hover:bg-tretaflix-red/80"
+                    onClick={() => navigate(-1)}
+                  >
+                    Voltar
+                  </Button>
+                </div>
+              )}
             </div>
             
             {content.overview && (
