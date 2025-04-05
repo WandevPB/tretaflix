@@ -6,7 +6,8 @@
   NODE_VERSION = "18"
   # Variáveis de ambiente para o Supabase
   VITE_SUPABASE_URL = "https://hawbikistbbenjaldjvk.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg2MjA3NzYsImV4cCI6MjAzNDE5Njc3Nn0.O2mEYwLhMBnOjDxIRDhj7RYo4w-f68SPBfEQVKUgh1E"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxODYyMDc3NiwiZXhwIjoyMDM0MTk2Nzc2fQ.xdqd3rJcPmQNpJdnRHLEpqOJu6iXEDcs1s5UAK3JKGw"
+  VITE_SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxODYyMDc3NiwiZXhwIjoyMDM0MTk2Nzc2fQ.xdqd3rJcPmQNpJdnRHLEpqOJu6iXEDcs1s5UAK3JKGw"
   VITE_ADMIN_USERNAME = "admin"
   VITE_ADMIN_PASSWORD = "admin123"
 
@@ -22,12 +23,12 @@
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-    Access-Control-Allow-Headers = "X-Requested-With, Content-Type, Authorization"
+    Access-Control-Allow-Headers = "X-Requested-With, Content-Type, Authorization, apikey, X-Client-Info, X-Supabase-Api-Key"
 
 # Cabeçalhos para garantir que o conteúdo funcione corretamente
 [[headers]]
   for = "/*"
     [headers.values]
-    X-Frame-Options = "DENY"
+    X-Frame-Options = "SAMEORIGIN"
     X-XSS-Protection = "1; mode=block"
     Content-Security-Policy = "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'" 
