@@ -19,6 +19,8 @@ import AdminSeries from "./pages/AdminSeries";
 import AdminLiveTV from "./pages/AdminLiveTV";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
+import EditContent from "./pages/EditContent";
+import Watch from "./pages/Watch";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,8 @@ const App = () => (
           <Route path="/admin/aovivo" element={<AdminLiveTV />} />
           <Route path="/admin/usuarios" element={<AdminUsers />} />
           <Route path="/admin/configuracoes" element={<AdminSettings />} />
+          <Route path="/admin/editar/:id" element={<EditContent />} />
+          <Route path="/watch/:type/:id" element={<Watch />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
