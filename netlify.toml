@@ -6,7 +6,7 @@
   NODE_VERSION = "18"
   # Variáveis de ambiente para o Supabase
   VITE_SUPABASE_URL = "https://hawbikistbbenjaldjvk.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg2MjA3NzYsImV4cCI6MjAzNDE5Njc3Nn0.eyJhbGc1NiIvfTQ-W_g6qjM0Ky4n3_xvRLwt4RwOULuY"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg2MjA3NzYsImV4cCI6MjAzNDE5Njc3Nn0.O2mEYwLhMBnOjDxIRDhj7RYo4w-f68SPBfEQVKUgh1E"
   VITE_ADMIN_USERNAME = "admin"
   VITE_ADMIN_PASSWORD = "admin123"
 
