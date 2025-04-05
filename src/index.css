@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -53,7 +52,17 @@
 
   body {
     @apply bg-tretaflix-black text-foreground;
+    background-color: #000000;
+    color: #ffffff;
   }
+}
+
+/* Classes customizadas para o TretaFlix */
+html, body, #root {
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .content-grid {
