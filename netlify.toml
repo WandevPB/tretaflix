@@ -4,8 +4,11 @@
 
 [build.environment]
   NODE_VERSION = "18"
-  # Garantir que as variáveis de ambiente sejam processadas durante o build
-  VITE_ENVIRONMENT = "production"
+  # Variáveis de ambiente para o Supabase
+  VITE_SUPABASE_URL = "https://hawbikistbbenjaldjvk.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg4MDEwNDIsImV4cCI6MjAzNDM3NzA0Mn0.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+  VITE_ADMIN_USERNAME = "admin"
+  VITE_ADMIN_PASSWORD = "admin123"
 
 # Configuração para SPA (Single Page Application)
 [[redirects]]
