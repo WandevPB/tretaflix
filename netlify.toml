@@ -4,6 +4,8 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  # Garantir que as variáveis de ambiente sejam processadas durante o build
+  VITE_ENVIRONMENT = "production"
 
 # Configuração para SPA (Single Page Application)
 [[redirects]]
@@ -11,9 +13,10 @@
   to = "/index.html"
   status = 200
 
-# Cabeçalhos de segurança
+# Cabeçalhos para garantir que o conteúdo funcione corretamente
 [[headers]]
   for = "/*"
     [headers.values]
     X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block" 
+    X-XSS-Protection = "1; mode=block"
+    Content-Security-Policy = "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'" 
