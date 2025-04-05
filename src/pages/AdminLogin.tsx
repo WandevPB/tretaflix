@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,26 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Debug das credenciais
+    console.log("Debug de credenciais:");
+    console.log("VITE_ADMIN_USERNAME:", import.meta.env.VITE_ADMIN_USERNAME || "não definido");
+    console.log("VITE_ADMIN_PASSWORD:", import.meta.env.VITE_ADMIN_PASSWORD || "não definido");
+  }, []);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Use environment variables for credentials
+    console.log("Tentativa de login com:", username, password);
+    
+    // Use environment variables for credentials or fallback to hardcoded
     setTimeout(() => {
-      if (username === import.meta.env.VITE_ADMIN_USERNAME && 
-          password === import.meta.env.VITE_ADMIN_PASSWORD) {
+      // Aceitar credenciais das variáveis de ambiente ou usar fallback hardcoded
+      if ((username === import.meta.env.VITE_ADMIN_USERNAME && 
+          password === import.meta.env.VITE_ADMIN_PASSWORD) ||
+          (username === "admin" && password === "admin123")) {
+        
         // Set auth token in localStorage
         localStorage.setItem("admin_token", btoa(Date.now().toString()));
         localStorage.setItem("admin_name", "Administrador");
@@ -101,6 +113,10 @@ const AdminLogin = () => {
           >
             {isLoading ? "Entrando..." : "Entrar"}
           </Button>
+          
+          <div className="text-center text-sm text-gray-400 mt-4">
+            <p>Use admin/admin123 para acessar</p>
+          </div>
         </form>
       </div>
     </div>
