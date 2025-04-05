@@ -52,7 +52,8 @@ const saveContent = async (content: any): Promise<boolean> => {
     
     // Limpar e preparar o conteúdo com os campos necessários
     const newContent = {
-      id: content.id || Math.random().toString(36).substring(2, 9),
+      // Gerar ID único baseado em timestamp + número aleatório para evitar colisões
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       title: content.title || '',
       overview: content.overview || '',
       posterurl: content.poster_path || content.posterUrl || '',
