@@ -79,38 +79,41 @@ const saveContent = async (content: any): Promise<boolean> => {
     
     console.log("Conteúdo preparado para salvar:", newContent);
 
-    // Método alternativo usando fetch diretamente
-    const response = await fetch('https://hawbikistbbenjaldjvk.supabase.co/rest/v1/tretaflix', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg2MjA3NzYsImV4cCI6MjAzNDE5Njc3Nn0.O2mEYwLhMBnOjDxIRDhj7RYo4w-f68SPBfEQVKUgh1E',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg2MjA3NzYsImV4cCI6MjAzNDE5Njc3Nn0.O2mEYwLhMBnOjDxIRDhj7RYo4w-f68SPBfEQVKUgh1E',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(newContent)
-    });
+    // Usar o cliente Supabase configurado corretamente
+    console.log("Usando cliente Supabase para salvar");
+    const { error } = await supabase
+      .from('tretaflix')
+      .insert(newContent);
     
-    if (!response.ok) {
-      console.error("Erro ao salvar via fetch:", response.status, response.statusText);
-      const errorData = await response.text();
-      console.error("Detalhes do erro:", errorData);
+    if (error) {
+      console.error("Erro ao salvar via Supabase client:", error);
       
-      // Tentar método alternativo via Supabase client
-      console.log("Tentando método alternativo via cliente Supabase");
-      const { error } = await supabase
-        .from('tretaflix')
-        .insert(newContent);
+      // Método alternativo - REST API direta como fallback
+      console.log("Tentando método alternativo via fetch");
+      const response = await fetch('https://hawbikistbbenjaldjvk.supabase.co/rest/v1/tretaflix', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg2MjA3NzYsImV4cCI6MjAzNDE5Njc3Nn0.O2mEYwLhMBnOjDxIRDhj7RYo4w-f68SPBfEQVKUgh1E',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd2Jpa2lzdGJiZW5qYWxkanZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg2MjA3NzYsImV4cCI6MjAzNDE5Njc3Nn0.O2mEYwLhMBnOjDxIRDhj7RYo4w-f68SPBfEQVKUgh1E',
+          'Prefer': 'return=minimal',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+        },
+        body: JSON.stringify(newContent)
+      });
       
-      if (error) {
-        console.error("Erro ao salvar via cliente Supabase:", error);
-        throw new Error(`Não foi possível salvar: ${error.message}`);
+      if (!response.ok) {
+        console.error("Erro ao salvar via fetch:", response.status, response.statusText);
+        const errorData = await response.text();
+        console.error("Detalhes do erro:", errorData);
+        throw new Error(`Não foi possível salvar via nenhum método: ${error.message}`);
       } else {
-        console.log("Sucesso ao salvar via cliente Supabase!");
+        console.log("Sucesso ao salvar via fetch (método alternativo)!");
         return true;
       }
     } else {
-      console.log("Sucesso ao salvar via fetch!");
+      console.log("Sucesso ao salvar via cliente Supabase!");
       return true;
     }
   } catch (error) {
