@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Play } from 'lucide-react';
 import DirectPlayer from './DirectPlayer';
+import TorrentPlayer from './TorrentPlayer';
 
 interface VideoPlayerProps {
   embedCode: string;
@@ -98,7 +99,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     } 
     // Verificar se é um link magnet (torrent)
     else if (code.startsWith('magnet:')) {
-      setPlayerType('direct');
+      setPlayerType('torrent');
       setVideoUrl(code);
       setLoading(false);
     }
@@ -248,6 +249,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
         source={videoUrl} 
         className={className}
         poster={selectedSample?.thumbnail || poster}
+      />
+    );
+  }
+  
+  // Usa TorrentPlayer para links de torrent
+  if (playerType === 'torrent' && videoUrl) {
+    return (
+      <TorrentPlayer
+        torrentUrl={videoUrl}
+        className={className}
+        poster={poster}
       />
     );
   }
