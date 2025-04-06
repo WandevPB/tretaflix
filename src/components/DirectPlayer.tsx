@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, Play, Pause, Maximize, Loader2 } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, Maximize, Loader2, RefreshCw } from 'lucide-react';
 
 // Vídeos de amostra garantidos para funcionar
 const SAMPLE_VIDEOS = [
@@ -35,6 +35,7 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [finalUrl, setFinalUrl] = useState<string>('');
+  const [usingSampleVideo, setUsingSampleVideo] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -50,11 +51,18 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
 
   // Pegar um vídeo de amostra aleatório
   const getRandomSampleVideo = (): string => {
-    return SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)].url;
+    const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+    console.log("Usando vídeo de amostra:", randomSample.title);
+    setUsingSampleVideo(true);
+    return randomSample.url;
   };
 
-  // Usar um vídeo de amostra garantido
+  // Tentar usar o vídeo fornecido primeiro, com fallback para vídeo de amostra
   useEffect(() => {
+    setError(null);
+    setLoading(true);
+    setUsingSampleVideo(false);
+    
     if (!source) {
       console.log("Nenhuma fonte fornecida, usando vídeo de amostra");
       const sampleUrl = getRandomSampleVideo();
@@ -63,25 +71,33 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
       return;
     }
 
-    // Sempre use um vídeo de amostra garantido para evitar problemas
-    const sampleUrl = getRandomSampleVideo();
-    setFinalUrl(sampleUrl);
+    console.log("Tentando reproduzir vídeo com URL:", source);
+    // Tentar usar a fonte original primeiro
+    setFinalUrl(source);
     
     // Configuração do vídeo quando disponível
     if (videoRef.current) {
-      videoRef.current.src = sampleUrl;
+      videoRef.current.src = source;
       videoRef.current.load();
     }
     
-    // Definir um timeout curto para garantir que o carregamento não fique preso
+    // Definir um timeout para fallback em caso de erro
     const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
+      if (loading) {
+        console.log("Timeout de carregamento, tentando vídeo de amostra");
+        const sampleUrl = getRandomSampleVideo();
+        setFinalUrl(sampleUrl);
+        if (videoRef.current) {
+          videoRef.current.src = sampleUrl;
+          videoRef.current.load();
+        }
+      }
+    }, 5000);
     
     return () => {
       clearTimeout(timeout);
     };
-  }, [source]);
+  }, [source, attemptNumber]);
 
   // Atualização de tempo durante a reprodução
   useEffect(() => {
@@ -105,16 +121,18 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
     const handleError = (e: any) => {
       console.error('Erro no vídeo:', e);
       
-      // Se ocorrer erro, tentar com um vídeo de amostra garantido
-      const fallbackUrl = getRandomSampleVideo();
-      
-      if (video.src !== fallbackUrl) {
-        console.log("Usando vídeo de amostra fallback:", fallbackUrl);
-        video.src = fallbackUrl;
+      // Se não estiver usando vídeo de amostra, tentar com um
+      if (!usingSampleVideo) {
+        console.log("Erro ao carregar vídeo original, usando vídeo de amostra");
+        const fallbackUrl = getRandomSampleVideo();
         setFinalUrl(fallbackUrl);
-        video.load();
+        if (video) {
+          video.src = fallbackUrl;
+          video.load();
+        }
       } else {
-        setError('Não foi possível reproduzir o vídeo. Tente outro formato.');
+        // Se já está usando vídeo de amostra e ainda há erro
+        setError('Não foi possível reproduzir o vídeo. Tente novamente.');
         setLoading(false);
       }
     };
@@ -137,7 +155,7 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('error', handleError);
     };
-  }, [finalUrl]);
+  }, [finalUrl, usingSampleVideo]);
 
   // Controle de reprodução
   const togglePlay = () => {
@@ -163,7 +181,7 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
             // Se o erro for por interação do usuário, aguardar clique
             if (error.name === 'NotAllowedError') {
               setError('Clique para reproduzir o vídeo');
-            } else {
+            } else if (!usingSampleVideo) {
               // Para outros erros, tentar vídeo alternativo
               const fallbackUrl = getRandomSampleVideo();
               video.src = fallbackUrl;
@@ -172,10 +190,19 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
               video.play().catch(() => {
                 setError('Não foi possível reproduzir o vídeo');
               });
+            } else {
+              setError('Não foi possível reproduzir o vídeo');
             }
           });
       }
     }
+  };
+
+  // Tentar novamente com o vídeo original
+  const tryAgain = () => {
+    setError(null);
+    setLoading(true);
+    setAttemptNumber(prev => prev + 1);
   };
 
   // Controle de tempo
@@ -247,110 +274,123 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
     }
   };
 
+  // Mostrar erro com opção de tentar novamente
   if (error) {
     return (
-      <div className={`bg-black ${className} aspect-video flex items-center justify-center text-white flex-col`}>
-        <div className="text-center p-4">
-          <p className="text-red-500 mb-2">{error}</p>
-          <button 
-            onClick={() => {
-              setError(null);
-              setLoading(true);
-              const sampleUrl = getRandomSampleVideo();
-              setFinalUrl(sampleUrl);
-              if (videoRef.current) {
-                videoRef.current.src = sampleUrl;
-                videoRef.current.load();
-              }
-            }}
-            className="px-4 py-2 bg-tretaflix-red hover:bg-red-700 text-white rounded"
-          >
-            Tentar novamente
-          </button>
-        </div>
+      <div className={`flex flex-col items-center justify-center bg-black ${className} aspect-video`}>
+        <p className="text-white mb-4">{error}</p>
+        <button
+          onClick={tryAgain}
+          className="px-4 py-2 bg-tretaflix-red hover:bg-red-700 text-white rounded flex items-center"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" /> Tentar Novamente
+        </button>
       </div>
     );
   }
 
+  // Loading state
   if (loading) {
     return (
-      <div className={`bg-black ${className} aspect-video flex items-center justify-center`}>
-        <Loader2 className="w-10 h-10 text-tretaflix-red animate-spin" />
+      <div className={`flex flex-col items-center justify-center bg-black ${className} aspect-video`}>
+        <Loader2 className="w-8 h-8 animate-spin text-tretaflix-red mb-2" />
+        <p className="text-white">Carregando vídeo...</p>
       </div>
     );
   }
 
+  // Render player
   return (
-    <div 
+    <div
       ref={playerRef}
-      className={`relative bg-black ${className} aspect-video`}
+      className={`relative bg-black ${className} aspect-video overflow-hidden`}
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => playing && setShowControls(false)}
+      onClick={() => !playing && togglePlay()}
     >
       <video
         ref={videoRef}
         className="w-full h-full"
         poster={poster}
-        onClick={togglePlay}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
+        preload="auto"
         playsInline
       />
       
-      {/* Controles do player */}
-      <div 
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+      {/* Overlay com controles */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300 ${
+          showControls || !playing ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
       >
-        {/* Barra de progresso */}
-        <div className="flex items-center mb-2">
-          <input
-            type="range"
-            min={0}
-            max={duration || 1}
-            value={currentTime}
-            onChange={handleSeek}
-            className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-            style={{
-              backgroundSize: `${(currentTime / (duration || 1)) * 100}% 100%`,
-              backgroundImage: 'linear-gradient(to right, #E50914, #E50914)'
-            }}
-          />
-        </div>
+        {/* Play/Pause central */}
+        <button
+          onClick={togglePlay}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 flex items-center justify-center bg-tretaflix-red/80 rounded-full hover:bg-tretaflix-red transition"
+        >
+          {playing ? (
+            <Pause className="w-8 h-8 text-white" />
+          ) : (
+            <Play className="w-8 h-8 text-white ml-1" />
+          )}
+        </button>
         
-        {/* Controles de reprodução e volume */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {/* Botão play/pause */}
-            <button onClick={togglePlay} className="text-white">
-              {playing ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-            
-            {/* Tempo de reprodução */}
-            <div className="text-white text-sm">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </div>
-            
-            {/* Controle de volume */}
-            <div className="flex items-center">
-              <button onClick={toggleMute} className="text-white mr-2">
-                {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.1}
-                value={muted ? 0 : volume}
-                onChange={handleVolumeChange}
-                className="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
+        {/* Controles inferiores */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-2">
+          {/* Progress bar */}
+          <div className="flex items-center mb-2">
+            <span className="text-xs text-white mr-2">{formatTime(currentTime)}</span>
+            <input
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={currentTime}
+              onChange={handleSeek}
+              className="flex-grow h-1 bg-white/30 rounded-full appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #E50914 0%, #E50914 ${(currentTime / (duration || 1)) * 100}%, rgba(255, 255, 255, 0.3) ${(currentTime / (duration || 1)) * 100}%, rgba(255, 255, 255, 0.3) 100%)`
+              }}
+            />
+            <span className="text-xs text-white ml-2">{formatTime(duration)}</span>
           </div>
           
-          {/* Botão de tela cheia */}
-          <button onClick={toggleFullscreen} className="text-white">
-            <Maximize size={18} />
-          </button>
+          {/* Botões de controle */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <button onClick={togglePlay} className="mr-4 text-white hover:text-tretaflix-red">
+                {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </button>
+              
+              <div className="flex items-center mr-4">
+                <button onClick={toggleMute} className="text-white hover:text-tretaflix-red">
+                  {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={muted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className="ml-2 w-16 h-1 bg-white/30 rounded-full appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #E50914 0%, #E50914 ${muted ? 0 : volume * 100}%, rgba(255, 255, 255, 0.3) ${muted ? 0 : volume * 100}%, rgba(255, 255, 255, 0.3) 100%)`
+                  }}
+                />
+              </div>
+              
+              {usingSampleVideo && (
+                <span className="text-xs text-white/70">
+                  Reproduzindo vídeo de amostra
+                </span>
+              )}
+            </div>
+            
+            <button
+              onClick={toggleFullscreen}
+              className="text-white hover:text-tretaflix-red"
+            >
+              <Maximize className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

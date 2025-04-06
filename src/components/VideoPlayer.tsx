@@ -36,6 +36,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
   const [showSampleOptions, setShowSampleOptions] = useState(false);
   const [selectedSample, setSelectedSample] = useState<typeof SAMPLE_VIDEOS[0] | null>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
 
   // Configurar um timeout para mostrar opções de amostra caso o vídeo demore muito para carregar
   useEffect(() => {
@@ -44,7 +45,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
       clearTimeout(loadingTimeoutRef.current);
     }
     
-    // Definir um novo timeout de 5 segundos (reduzido de 10 para 5 segundos)
+    // Definir um novo timeout de 8 segundos para tentar carregar o vídeo
     if (loading) {
       loadingTimeoutRef.current = setTimeout(() => {
         console.log("Tempo de carregamento excedido - mostrando opções de amostra");
@@ -55,8 +56,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
         const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
         setSelectedSample(randomSample);
         setVideoUrl(randomSample.url);
-        setError("O vídeo demorou muito para carregar. Tentando com um vídeo de amostra.");
-      }, 5000); // Reduzido para 5 segundos
+        setError("O vídeo demorou muito para carregar. Use um vídeo de amostra garantido.");
+      }, 8000); // Aumentado para 8 segundos para dar mais tempo ao carregamento
     }
     
     // Limpar o timeout quando o componente for desmontado
@@ -65,7 +66,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, [loading]);
+  }, [loading, attemptCount]);
 
   // Processamento do URL do vídeo
   useEffect(() => {
@@ -80,6 +81,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
       return;
     }
     
+    setLoading(true);
     console.log("Processando link do vídeo:", embedCode);
     
     const code = embedCode.trim();
@@ -95,37 +97,47 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
       } else {
         setVideoUrl(code);
       }
+      setLoading(false);
     } 
+    // Verificar se é um link magnet (torrent)
+    else if (code.startsWith('magnet:')) {
+      console.log("Link magnet detectado, usando direto");
+      setPlayerType('direct');
+      setVideoUrl(code);
+      setLoading(false);
+    }
     // Verificar se é uma URL direta
-    else if (code.startsWith('http')) {
+    else if (code.startsWith('http') || code.startsWith('https') || code.startsWith('//')) {
       console.log("URL direta detectada, tentando usar");
       
       // Verificar se é um arquivo de vídeo comum
-      const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
-      const isVideoFile = videoExtensions.some(ext => code.toLowerCase().endsWith(ext));
+      const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m3u8', '.ts'];
+      const isVideoFile = videoExtensions.some(ext => code.toLowerCase().includes(ext));
       
-      if (isVideoFile) {
-        console.log("Arquivo de vídeo detectado");
-        setPlayerType('direct');
-        setVideoUrl(code);
+      // Para qualquer URL, tentamos usar diretamente
+      setPlayerType('direct');
+      
+      // Se for URL com // no início, adicionar https:
+      if (code.startsWith('//')) {
+        setVideoUrl(`https:${code}`);
       } else {
-        // Tentar como URL direta mesmo assim
-        setPlayerType('direct');
         setVideoUrl(code);
       }
+      
+      console.log("Usando URL direta:", code);
+      setLoading(false);
     }
-    // Para qualquer outro caso, tratar como texto de URL
+    // Para qualquer outro caso, considerar como texto de URL
     else {
       console.log("Tentando tratar como URL sem protocolo");
-      const urlWithProtocol = code.startsWith('//') ? `https:${code}` : `https://${code}`;
+      // Se for texto, supor que é uma URL sem protocolo
+      const urlWithProtocol = `https://${code}`;
       setPlayerType('direct');
       setVideoUrl(urlWithProtocol);
+      setLoading(false);
     }
-    
-    // Sempre desativar o loading depois de processar
-    setLoading(false);
 
-  }, [embedCode]);
+  }, [embedCode, attemptCount]);
   
   const handleIframeLoad = () => {
     if (loadingTimeoutRef.current) {
@@ -165,6 +177,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
   const backToSampleOptions = () => {
     setShowSampleOptions(true);
   };
+
+  // Tentar novamente com o URL original
+  const tryAgain = () => {
+    setAttemptCount(prev => prev + 1);
+    setLoading(true);
+    setError(null);
+    setShowSampleOptions(false);
+  };
   
   if (loading) {
     return (
@@ -179,12 +199,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     return (
       <div className={`flex flex-col items-center justify-center bg-black ${className} aspect-video text-white`}>
         <p>Não foi possível carregar o vídeo.</p>
-        <button
-          onClick={() => setShowSampleOptions(true)}
-          className="mt-4 px-4 py-2 bg-tretaflix-red hover:bg-red-700 text-white rounded"
-        >
-          Ver vídeos de amostra
-        </button>
+        <div className="flex space-x-4 mt-4">
+          <button
+            onClick={tryAgain}
+            className="px-4 py-2 bg-tretaflix-gray hover:bg-gray-700 text-white rounded"
+          >
+            Tentar novamente
+          </button>
+          <button
+            onClick={() => setShowSampleOptions(true)}
+            className="px-4 py-2 bg-tretaflix-red hover:bg-red-700 text-white rounded"
+          >
+            Ver vídeos de amostra
+          </button>
+        </div>
       </div>
     );
   }
@@ -216,47 +244,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
             </div>
           ))}
         </div>
+        
+        <button
+          onClick={tryAgain}
+          className="px-4 py-2 bg-tretaflix-gray hover:bg-gray-700 text-white rounded"
+        >
+          Tentar com o vídeo original
+        </button>
       </div>
     );
   }
 
-  // Player de vídeo direto (inclui vídeos de amostra)
+  // Usa DirectPlayer para vídeos diretos e amostras
   if (playerType === 'direct' || playerType === 'sample') {
     return (
-      <div className="w-full flex flex-col">
-        <div className={`${className} aspect-video bg-black`}>
-          <video
-            src={videoUrl}
-            controls
-            poster={selectedSample?.thumbnail || poster}
-            className="w-full h-full"
-            onLoadedData={() => setLoading(false)}
-            onError={handleVideoError}
-            playsInline
-            autoPlay
-          />
-        </div>
-        <div className="py-3 px-4 text-center bg-tretaflix-gray/20 rounded-b-md flex flex-wrap items-center justify-between">
-          {selectedSample && (
-            <div className="text-white text-sm">
-              Reproduzindo: {selectedSample.title}
-            </div>
-          )}
-          {!selectedSample && videoUrl && (
-            <div className="text-white text-sm">
-              Reproduzindo vídeo
-            </div>
-          )}
-          <div className="flex space-x-2 ml-auto">
-            <button
-              onClick={() => backToSampleOptions()}
-              className="px-3 py-1 text-sm bg-tretaflix-gray hover:bg-gray-700 text-white rounded"
-            >
-              Trocar vídeo
-            </button>
-          </div>
-        </div>
-      </div>
+      <DirectPlayer 
+        source={videoUrl} 
+        className={className}
+        poster={selectedSample?.thumbnail || poster}
+      />
     );
   }
   
@@ -274,12 +280,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
           onError={handleIframeError}
         />
       </div>
-      <div className="py-3 text-center bg-tretaflix-gray/20 rounded-b-md">
+      <div className="py-3 px-4 text-center bg-tretaflix-gray/20 rounded-b-md flex flex-wrap items-center justify-between">
+        <div className="text-white text-sm">
+          Reproduzindo iframe
+        </div>
         <button
           onClick={() => backToSampleOptions()}
-          className="px-4 py-2 bg-tretaflix-red hover:bg-red-700 text-white rounded"
+          className="px-3 py-1 text-sm bg-tretaflix-gray hover:bg-gray-700 text-white rounded"
         >
-          Ver vídeos de amostra
+          Trocar vídeo
         </button>
       </div>
     </div>
