@@ -52,7 +52,6 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
   // Pegar um vídeo de amostra aleatório
   const getRandomSampleVideo = (): string => {
     const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
-    console.log("Usando vídeo de amostra:", randomSample.title);
     setUsingSampleVideo(true);
     return randomSample.url;
   };
@@ -64,27 +63,21 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
     setUsingSampleVideo(false);
     
     if (!source) {
-      console.log("Nenhuma fonte fornecida, usando vídeo de amostra");
       const sampleUrl = getRandomSampleVideo();
       setFinalUrl(sampleUrl);
       setLoading(false);
       return;
     }
 
-    console.log("Tentando reproduzir vídeo com URL:", source);
-    // Tentar usar a fonte original primeiro
     setFinalUrl(source);
     
-    // Configuração do vídeo quando disponível
     if (videoRef.current) {
       videoRef.current.src = source;
       videoRef.current.load();
     }
     
-    // Definir um timeout para fallback em caso de erro
     const timeout = setTimeout(() => {
       if (loading) {
-        console.log("Timeout de carregamento, tentando vídeo de amostra");
         const sampleUrl = getRandomSampleVideo();
         setFinalUrl(sampleUrl);
         if (videoRef.current) {
@@ -109,7 +102,6 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
     };
 
     const handleLoadedMetadata = () => {
-      console.log("Vídeo metadata carregada, duração:", video.duration);
       setDuration(video.duration);
       setLoading(false);
     };
@@ -119,11 +111,7 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
     };
 
     const handleError = (e: any) => {
-      console.error('Erro no vídeo:', e);
-      
-      // Se não estiver usando vídeo de amostra, tentar com um
       if (!usingSampleVideo) {
-        console.log("Erro ao carregar vídeo original, usando vídeo de amostra");
         const fallbackUrl = getRandomSampleVideo();
         setFinalUrl(fallbackUrl);
         if (video) {
@@ -131,14 +119,12 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
           video.load();
         }
       } else {
-        // Se já está usando vídeo de amostra e ainda há erro
         setError('Não foi possível reproduzir o vídeo. Tente novamente.');
         setLoading(false);
       }
     };
 
     const handleCanPlay = () => {
-      console.log("Vídeo pronto para reproduzir");
       setLoading(false);
     };
 
@@ -176,9 +162,6 @@ const DirectPlayer: React.FC<DirectPlayerProps> = ({ source, className = '', pos
             setPlaying(true);
           })
           .catch(error => {
-            console.error('Erro ao iniciar reprodução:', error);
-            
-            // Se o erro for por interação do usuário, aguardar clique
             if (error.name === 'NotAllowedError') {
               setError('Clique para reproduzir o vídeo');
             } else if (!usingSampleVideo) {

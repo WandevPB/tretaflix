@@ -48,7 +48,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     // Definir um novo timeout de 8 segundos para tentar carregar o vídeo
     if (loading) {
       loadingTimeoutRef.current = setTimeout(() => {
-        console.log("Tempo de carregamento excedido - mostrando opções de amostra");
         setLoading(false);
         setShowSampleOptions(true);
         setPlayerType('sample');
@@ -57,7 +56,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
         setSelectedSample(randomSample);
         setVideoUrl(randomSample.url);
         setError("O vídeo demorou muito para carregar. Use um vídeo de amostra garantido.");
-      }, 8000); // Aumentado para 8 segundos para dar mais tempo ao carregamento
+      }, 8000);
     }
     
     // Limpar o timeout quando o componente for desmontado
@@ -82,13 +81,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     }
     
     setLoading(true);
-    console.log("Processando link do vídeo:", embedCode);
     
     const code = embedCode.trim();
     
     // Verificar se é um iframe
     if (code.includes('<iframe') && code.includes('src=')) {
-      console.log("Código iframe detectado");
       setPlayerType('iframe');
       // Extrair o URL do src
       const srcMatch = code.match(/src=["']([^"']+)["']/);
@@ -101,20 +98,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
     } 
     // Verificar se é um link magnet (torrent)
     else if (code.startsWith('magnet:')) {
-      console.log("Link magnet detectado, usando direto");
       setPlayerType('direct');
       setVideoUrl(code);
       setLoading(false);
     }
     // Verificar se é uma URL direta
     else if (code.startsWith('http') || code.startsWith('https') || code.startsWith('//')) {
-      console.log("URL direta detectada, tentando usar");
-      
-      // Verificar se é um arquivo de vídeo comum
       const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m3u8', '.ts'];
-      const isVideoFile = videoExtensions.some(ext => code.toLowerCase().includes(ext));
       
-      // Para qualquer URL, tentamos usar diretamente
       setPlayerType('direct');
       
       // Se for URL com // no início, adicionar https:
@@ -124,13 +115,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
         setVideoUrl(code);
       }
       
-      console.log("Usando URL direta:", code);
       setLoading(false);
     }
     // Para qualquer outro caso, considerar como texto de URL
     else {
-      console.log("Tentando tratar como URL sem protocolo");
-      // Se for texto, supor que é uma URL sem protocolo
       const urlWithProtocol = `https://${code}`;
       setPlayerType('direct');
       setVideoUrl(urlWithProtocol);
@@ -147,7 +135,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
   };
 
   const handleIframeError = () => {
-    console.log("Erro ao carregar iframe - mostrando opções de amostra");
     setShowSampleOptions(true);
     setPlayerType('sample');
     const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
@@ -157,7 +144,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ embedCode, className = '', po
   };
   
   const handleVideoError = () => {
-    console.log("Erro ao carregar vídeo direto - mostrando opções de amostra");
     setShowSampleOptions(true);
     setPlayerType('sample');
     const randomSample = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];

@@ -3,10 +3,10 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Play, Star, Clock, Calendar, Tag } from "lucide-react";
-import ContentSlider, { ContentItem } from "@/components/ContentSlider";
+import { Play, Star, Clock, Calendar } from "lucide-react";
 import { getOmdbDetail } from "@/services/omdbApi";
 import { useToast } from "@/components/ui/use-toast";
+import VideoPlayer from "@/components/VideoPlayer";
 
 interface ContentDetailProps {
   type: "filme" | "serie" | "aovivo";
@@ -29,10 +29,8 @@ const ContentDetail = ({ type }: ContentDetailProps) => {
     embedUrl: string;
   } | null>(null);
   
-  const [relatedContent, setRelatedContent] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch content details
   useEffect(() => {
     const fetchContentDetails = async () => {
       if (!id) return;
@@ -40,12 +38,10 @@ const ContentDetail = ({ type }: ContentDetailProps) => {
       try {
         setIsLoading(true);
         
-        // First check if content exists in localStorage
         const storedContent = JSON.parse(localStorage.getItem('tretaflix_content') || '[]');
         const localContent = storedContent.find((item: any) => item.id === id || item.imdbID === id);
         
         if (localContent) {
-          // Use content from localStorage if available
           setContent({
             id: localContent.id,
             title: localContent.title,
@@ -62,9 +58,7 @@ const ContentDetail = ({ type }: ContentDetailProps) => {
           return;
         }
         
-        // If not in localStorage, fetch from OMDB
         if (type !== "aovivo") {
-          const omdbType = type === "filme" ? "movie" : "series";
           const details = await getOmdbDetail(id);
           
           if (details.Response === "True") {
@@ -72,13 +66,13 @@ const ContentDetail = ({ type }: ContentDetailProps) => {
               id: details.imdbID,
               title: details.Title,
               overview: details.Plot,
-              backdrop: "https://images.unsplash.com/photo-1542204165-65bf26472b9b?q=80&w=2574&auto=format&fit=crop", // Placeholder
+              backdrop: "https://images.unsplash.com/photo-1542204165-65bf26472b9b?q=80&w=2574&auto=format&fit=crop",
               poster: details.Poster !== "N/A" ? details.Poster : "https://via.placeholder.com/300x450?text=Sem+Imagem",
               year: details.Year,
               duration: type === "filme" ? details.Runtime : details.totalSeasons ? `${details.totalSeasons} temporadas` : "Múltiplos episódios",
               rating: parseFloat(details.imdbRating) || 0,
               genres: details.Genre ? details.Genre.split(", ") : [],
-              embedUrl: "" // Empty because not added by admin yet
+              embedUrl: ""
             });
           } else {
             toast({
@@ -88,7 +82,6 @@ const ContentDetail = ({ type }: ContentDetailProps) => {
             });
           }
         } else {
-          // For live content
           setContent({
             id: id,
             title: "Canal ao Vivo",
@@ -99,7 +92,7 @@ const ContentDetail = ({ type }: ContentDetailProps) => {
             duration: "Ao vivo",
             rating: 0,
             genres: ["Ao Vivo"],
-            embedUrl: "" // Empty because not added by admin yet
+            embedUrl: ""
           });
         }
       } catch (error) {
@@ -127,21 +120,26 @@ const ContentDetail = ({ type }: ContentDetailProps) => {
       
       <main className="flex-grow">
         {isPlaying ? (
-          <div className="w-full bg-black aspect-video">
+          <div className="w-full bg-black">
             {content.embedUrl ? (
-              <iframe
-                src={content.embedUrl}
-                className="w-full h-full"
-                title={content.title}
-                frameBorder="0"
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              ></iframe>
+              <VideoPlayer
+                embedCode={content.embedUrl}
+                className="w-full"
+                poster={content.poster}
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-white">
+              <div className="w-full aspect-video flex items-center justify-center text-white">
                 <p>Não há conteúdo disponível para reprodução. O administrador precisa adicionar um link de torrent ou URL de vídeo.</p>
               </div>
             )}
+            <div className="container mx-auto px-4 py-4">
+              <Button 
+                className="bg-tretaflix-gray hover:bg-tretaflix-gray/80 text-white"
+                onClick={() => setIsPlaying(false)}
+              >
+                Voltar para detalhes
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="relative">
@@ -201,9 +199,15 @@ const ContentDetail = ({ type }: ContentDetailProps) => {
                   <Button 
                     className="bg-tretaflix-red hover:bg-tretaflix-red/80 text-white"
                     onClick={() => setIsPlaying(true)}
+                    disabled={!content.embedUrl}
                   >
                     <Play className="mr-2 h-5 w-5" /> Assistir Agora
                   </Button>
+                  {!content.embedUrl && (
+                    <p className="text-yellow-200 mt-2 text-sm">
+                      Este conteúdo ainda não possui um link de vídeo disponível.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
