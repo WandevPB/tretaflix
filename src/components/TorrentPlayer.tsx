@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import WebTorrent from 'webtorrent';
 import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, RefreshCw } from 'lucide-react';
 
 interface TorrentPlayerProps {
@@ -17,13 +16,10 @@ const TorrentPlayer: React.FC<TorrentPlayerProps> = ({ torrentUrl, className = '
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [downloadSpeed, setDownloadSpeed] = useState(0);
   const [showControls, setShowControls] = useState(true);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
-  const clientRef = useRef<WebTorrent.Instance | null>(null);
-  const torrentRef = useRef<WebTorrent.Torrent | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Formatar tempo para exibição MM:SS
@@ -33,16 +29,7 @@ const TorrentPlayer: React.FC<TorrentPlayerProps> = ({ torrentUrl, className = '
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
   
-  // Formatar bytes para exibição legível
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-  
-  // Inicializar o cliente WebTorrent e carregar o torrent
+  // Inicializar o player WebTorrent
   useEffect(() => {
     if (!torrentUrl) {
       setError('Nenhum link de torrent fornecido');
@@ -50,94 +37,68 @@ const TorrentPlayer: React.FC<TorrentPlayerProps> = ({ torrentUrl, className = '
       return;
     }
     
-    const initTorrent = async () => {
+    const loadWebTorrent = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Criar cliente WebTorrent se não existir
-        if (!clientRef.current) {
-          clientRef.current = new WebTorrent();
-        }
+        // Carregar a biblioteca WebTorrent dinamicamente
+        const WebTorrent = (await import('webtorrent/dist/webtorrent.min.js')).default;
+        const client = new WebTorrent();
         
-        // Limpar torrent anterior se existir
-        if (torrentRef.current) {
-          torrentRef.current.destroy();
-          torrentRef.current = null;
-        }
-        
-        // Adicionar novo torrent
-        clientRef.current.add(torrentUrl, torrent => {
-          torrentRef.current = torrent;
-          
-          // Atualizar progresso e velocidade de download
-          const progressInterval = setInterval(() => {
+        // Adicionar o torrent
+        client.add(torrentUrl, (torrent) => {
+          // Atualizar progresso de download
+          torrent.on('download', () => {
             setProgress(torrent.progress);
-            setDownloadSpeed(torrent.downloadSpeed);
-          }, 1000);
-          
-          // Encontrar o maior arquivo de vídeo no torrent
-          torrent.on('ready', () => {
-            const videoFiles = torrent.files.filter(file => {
-              const name = file.name.toLowerCase();
-              return name.endsWith('.mp4') || name.endsWith('.webm') || 
-                     name.endsWith('.mkv') || name.endsWith('.avi') || 
-                     name.endsWith('.mov') || name.endsWith('.ogg');
-            });
-            
-            if (videoFiles.length === 0) {
-              setError('Nenhum arquivo de vídeo encontrado no torrent');
-              setLoading(false);
-              clearInterval(progressInterval);
-              return;
-            }
-            
-            // Ordenar por tamanho e pegar o maior
-            const largestVideo = videoFiles.sort((a, b) => b.length - a.length)[0];
-            
-            // Streaming do arquivo para o elemento de vídeo
-            largestVideo.renderTo(videoRef.current as HTMLMediaElement, {
-              autoplay: false
-            }, () => {
-              setLoading(false);
-              if (videoRef.current) {
-                videoRef.current.onloadedmetadata = () => {
-                  setDuration(videoRef.current?.duration || 0);
-                };
-              }
-            });
           });
           
-          torrent.on('error', err => {
-            setError(`Erro ao carregar torrent: ${err.message}`);
+          // Buscar arquivo de vídeo
+          const file = torrent.files.find(file => {
+            const name = file.name.toLowerCase();
+            return name.endsWith('.mp4') || name.endsWith('.webm') || 
+                   name.endsWith('.mkv') || name.endsWith('.avi') || 
+                   name.endsWith('.mov') || name.endsWith('.ogg');
+          });
+          
+          if (!file) {
+            setError('Nenhum arquivo de vídeo encontrado no torrent');
             setLoading(false);
-            clearInterval(progressInterval);
-          });
+            return;
+          }
           
-          // Limpar intervalo quando componente for desmontado
-          return () => {
-            clearInterval(progressInterval);
-          };
+          // Criar URL para o arquivo
+          file.renderTo(videoRef.current as HTMLMediaElement, {
+            autoplay: false
+          }, () => {
+            setLoading(false);
+            if (videoRef.current) {
+              videoRef.current.onloadedmetadata = () => {
+                setDuration(videoRef.current?.duration || 0);
+              };
+            }
+          });
         });
         
-        clientRef.current.on('error', err => {
-          setError(`Erro no cliente WebTorrent: ${err.message}`);
+        // Lidar com erros do cliente
+        client.on('error', (err: Error) => {
+          console.error('Erro no WebTorrent:', err);
+          setError(`Erro ao reproduzir torrent: ${err.message}`);
           setLoading(false);
         });
+        
+        // Cleanup quando o componente for desmontado
+        return () => {
+          client.destroy();
+        };
       } catch (err: any) {
-        setError(`Erro ao inicializar torrent: ${err.message}`);
+        console.error('Erro ao inicializar WebTorrent:', err);
+        setError(`Não foi possível inicializar o player de torrent: ${err.message}`);
         setLoading(false);
       }
     };
     
-    initTorrent();
-    
-    // Cleanup
-    return () => {
-      if (torrentRef.current) {
-        torrentRef.current.destroy();
-      }
-    };
+    loadWebTorrent();
   }, [torrentUrl]);
   
   // Atualização de tempo durante a reprodução
@@ -249,18 +210,7 @@ const TorrentPlayer: React.FC<TorrentPlayerProps> = ({ torrentUrl, className = '
   
   // Tentar novamente
   const tryAgain = () => {
-    if (torrentRef.current) {
-      torrentRef.current.destroy();
-      torrentRef.current = null;
-    }
-    
-    if (clientRef.current) {
-      clientRef.current.add(torrentUrl, torrent => {
-        torrentRef.current = torrent;
-        setLoading(true);
-        setError(null);
-      });
-    }
+    window.location.reload();
   };
   
   // Mostrar erro com opção de tentar novamente
@@ -292,9 +242,6 @@ const TorrentPlayer: React.FC<TorrentPlayerProps> = ({ torrentUrl, className = '
             />
           </div>
         )}
-        <p className="text-white/70 mt-2 text-sm">
-          Velocidade: {formatBytes(downloadSpeed)}/s
-        </p>
       </div>
     );
   }
@@ -378,7 +325,7 @@ const TorrentPlayer: React.FC<TorrentPlayerProps> = ({ torrentUrl, className = '
               </div>
               
               <span className="text-xs text-white/70">
-                Buffer: {Math.round(progress * 100)}% | {formatBytes(downloadSpeed)}/s
+                Buffer: {Math.round(progress * 100)}%
               </span>
             </div>
             
